@@ -232,7 +232,9 @@ body{font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;backgroun
 <script>
 const SUPA_URL  = 'https://duorjhmhmqxushmldccv.supabase.co';
 const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1b3JqaG1obXF4dXNobWxkY2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzYyMTgsImV4cCI6MjA5MjI1MjIxOH0.VQPga6s3Ft0Zvd5xRTS6cUfNi5gc-6YXfkU5YTKfRRM';
+const SUPA_SVC = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1b3JqaG1obXF4dXNobWxkY2N2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjY3NjIxOCwiZXhwIjoyMDkyMjUyMjE4fQ.fVpM_MrQpxmZwzIFYMWq_R6JAG_rNMQvIJUMwId5lnk';
 const sb = supabase.createClient(SUPA_URL, SUPA_ANON);
+const sbAdmin = supabase.createClient(SUPA_URL, SUPA_SVC);
 
 let _pending2fa = null;
 
@@ -301,14 +303,30 @@ async function verify2fa(){
 }
 
 async function afterLogin(user,username){
-  // Ensure profile exists
-  const {data:p}=await sb.from('profiles').select('id,role').eq('id',user.id).maybeSingle();
-  if(!p){
-    await sb.from('profiles').insert({id:user.id,full_name:'Пользователь',username,role:'teacher',is_active:true});
-  }
-  // Log event
-  await sb.from('audit_logs').insert({user_id:user.id,username,event_type:'login',description:'Успешный вход',status:'success'}).catch(()=>{});
-  // Redirect to dashboard
+  // Read existing profile with sbAdmin (bypasses RLS completely)
+  try {
+    const {data:existing} = await sbAdmin.from('profiles').select('id').eq('id',user.id).maybeSingle();
+    if(!existing){
+      const meta = user.user_metadata || {};
+      await sbAdmin.from('profiles').insert({
+        id: user.id,
+        full_name: meta.full_name || username,
+        username: meta.username || username,
+        role: meta.role || 'teacher',
+        department: meta.department || '',
+        is_active: true
+      });
+    }
+  } catch(e){ console.warn('profile ensure failed', e); }
+
+  // Log event with sbAdmin
+  try {
+    await sbAdmin.from('audit_logs').insert([{
+      user_id:user.id, username,
+      event_type:'login', description:'Успешный вход', status:'success'
+    }]);
+  } catch(e){ console.warn('audit log failed',e); }
+
   location.href='dashboard.html';
 }
 

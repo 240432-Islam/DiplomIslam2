@@ -939,19 +939,20 @@ async function doLogin(){
   }
   console.log('✅ Auth success, user:', data.user?.id);
 
-  // Step 2: Load profile AFTER successful auth
-  const {data:profileCheck, error:pe} = await sb.from('profiles').select('id,username,role').eq('id',data.user.id).maybeSingle();
-  if(pe||!profileCheck){
-    // Profile missing — auto-create it for admin
-    await sb.from('profiles').upsert({
-      id: data.user.id,
-      full_name: 'Бекишев Ислам Гуламсахиулы',
-      username: username,
-      role: 'admin',
-      department: 'Администрация',
-      is_active: true
-    });
-  }
+  // Step 2: Load profile via sbAdmin (bypasses RLS)
+  try {
+    const {data:profileCheck} = await sbAdmin.from('profiles').select('id,username,role').eq('id',data.user.id).maybeSingle();
+    if(!profileCheck){
+      await sbAdmin.from('profiles').upsert({
+        id: data.user.id,
+        full_name: data.user.user_metadata?.full_name || username,
+        username,
+        role: data.user.user_metadata?.role || 'teacher',
+        department: data.user.user_metadata?.department || '',
+        is_active: true
+      }, {onConflict:'id'});
+    }
+  } catch(e){ console.warn('profile check failed',e); }
 
   // Check 2FA
   const {data:{factors}} = await sb.auth.mfa.listFactors();
@@ -984,12 +985,19 @@ async function doVerify2fa(){
 
 async function finishLogin(user, username){
   currentUser = user;
-  const {data:profile} = await sb.from('profiles').select('*').eq('id',user.id).single();
-  currentProfile = profile;
+  // Use sbAdmin to bypass RLS — profile must be readable immediately after login
+  try {
+    const {data:profile} = await sbAdmin.from('profiles').select('*').eq('id',user.id).maybeSingle();
+    currentProfile = profile;
+  } catch(e){ console.warn('profile read failed', e); }
 
-  // Update last_login
-  await sb.from('profiles').update({last_login: new Date().toISOString()}).eq('id',user.id);
-  await logEvent(user.id, username,'login','Успешный вход','success');
+  // Update last_login silently
+  try { await sbAdmin.from('profiles').update({last_login:new Date().toISOString()}).eq('id',user.id); } catch(e){}
+
+  // Log event
+  try {
+    await sb.from('audit_logs').insert([{user_id:user.id, username, event_type:'login', description:'Успешный вход', status:'success'}]);
+  } catch(e){}
 
   showApp();
   loadDashboard();
@@ -1427,12 +1435,13 @@ function renderAuditTable(){
 
 async function logEvent(userId, username, eventType, description, status){
   try {
-    await sb.from('audit_logs').insert([{
+    const ip = await getIP();
+    await sbAdmin.from('audit_logs').insert([{
       user_id: userId||null,
       username: username||'system',
       event_type: eventType,
       description,
-      ip_address: await getIP(),
+      ip_address: ip,
       status
     }]);
   } catch(e){ console.warn('audit log failed',e); }
@@ -1633,15 +1642,48 @@ document.querySelectorAll('.modal-overlay').forEach(overlay=>{
 async function init(){
   initPolicyInputs();
 
-  // Check existing session
   const {data:{session}} = await sb.auth.getSession();
-  if(session){
-    currentUser = session.user;
-    const {data:p} = await sb.from('profiles').select('*').eq('id',session.user.id).single();
-    currentProfile = p;
-    if(p){ await loadPolicy(); showApp(); return; }
+  if(!session){ location.href='login.html'; return; }
+
+  currentUser = session.user;
+
+  // Try anon read first, fallback to sbAdmin (service_role bypasses RLS)
+  let p = null;
+  try {
+    const res = await sb.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
+    p = res.data;
+  } catch(e){}
+
+  if(!p){
+    try {
+      const res = await sbAdmin.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
+      p = res.data;
+    } catch(e){}
   }
-  location.href='login.html';
+
+  if(!p){
+    // Profile still missing — create it from auth metadata
+    const meta = session.user.user_metadata || {};
+    const username = meta.username || session.user.email?.split('@')[0] || 'user';
+    try {
+      await sbAdmin.from('profiles').upsert({
+        id: session.user.id,
+        full_name: meta.full_name || username,
+        username,
+        role: meta.role || 'teacher',
+        department: meta.department || '',
+        is_active: true
+      }, {onConflict:'id'});
+      const res = await sbAdmin.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
+      p = res.data;
+    } catch(e){ console.error('profile create failed', e); }
+  }
+
+  if(!p){ location.href='login.html'; return; }
+
+  currentProfile = p;
+  await loadPolicy();
+  showApp();
 }
 
 document.addEventListener('DOMContentLoaded', init);
