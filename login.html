@@ -6,190 +6,107 @@
 <title>TURAN — Вход</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="supabase-shared.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;background:#06080f;}
 
-.bg{
-  position:fixed;inset:0;
-  background:url('media/Fon.png') center/cover no-repeat;
-  z-index:0;
-}
-.bg::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(6,8,15,0.88) 0%,rgba(6,12,30,0.82) 100%);
-}
+.bg{position:fixed;inset:0;background:url('media/Fon.png') center/cover no-repeat;z-index:0;}
+.bg::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(6,8,15,.88) 0%,rgba(6,12,30,.82) 100%);}
 
-.page{
-  position:relative;z-index:1;
-  min-height:100vh;
-  display:flex;align-items:center;justify-content:center;
-  padding:24px;
-}
+.page{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
 
-/* ── CARD ── */
 .card{
   width:100%;max-width:440px;
-  background:rgba(10,16,35,0.85);
-  backdrop-filter:blur(24px);
-  border:1px solid rgba(59,130,246,0.18);
-  border-radius:20px;
-  padding:44px 40px;
-  box-shadow:0 24px 80px rgba(0,0,0,0.55),
-             0 0 0 1px rgba(255,255,255,0.03),
-             inset 0 1px 0 rgba(255,255,255,0.05);
+  background:rgba(10,16,35,.88);backdrop-filter:blur(24px);
+  border:1px solid rgba(59,130,246,.18);border-radius:20px;padding:44px 40px;
+  box-shadow:0 24px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.03),inset 0 1px 0 rgba(255,255,255,.05);
   animation:slideUp .4s cubic-bezier(.16,1,.3,1);
 }
-@keyframes slideUp{
-  from{opacity:0;transform:translateY(28px);}
-  to{opacity:1;transform:translateY(0);}
-}
+@keyframes slideUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── HEADER ── */
 .card-head{text-align:center;margin-bottom:36px;}
-.card-logo{
-  width:64px;height:64px;object-fit:contain;
-  margin-bottom:20px;
-  filter:drop-shadow(0 0 20px rgba(59,130,246,0.50));
-}
+.card-logo{width:64px;height:64px;object-fit:contain;margin-bottom:20px;filter:drop-shadow(0 0 20px rgba(59,130,246,.5));}
 .card-brand{
-  font-family:'Montserrat',sans-serif;font-size:2rem;font-weight:900;
-  letter-spacing:6px;
+  font-family:'Montserrat',sans-serif;font-size:2rem;font-weight:900;letter-spacing:6px;
   background:linear-gradient(135deg,#fff 0%,#bfdbfe 40%,#60a5fa 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  margin-bottom:6px;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;
 }
-.card-sub{font-size:.75rem;color:rgba(148,163,184,0.65);letter-spacing:2px;text-transform:uppercase;}
+.card-sub{font-size:.75rem;color:rgba(148,163,184,.65);letter-spacing:2px;text-transform:uppercase;}
 
-/* ── FORM ── */
 .field{margin-bottom:20px;}
-.field label{
-  display:block;font-size:.72rem;font-weight:600;
-  color:rgba(148,163,184,0.75);letter-spacing:1.5px;text-transform:uppercase;
-  margin-bottom:8px;
-}
+.field label{display:block;font-size:.72rem;font-weight:600;color:rgba(148,163,184,.75);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
 .input-wrap{position:relative;}
 .field input{
   width:100%;padding:13px 16px;
-  background:rgba(15,23,42,0.8);
-  border:1.5px solid rgba(59,130,246,0.15);
-  border-radius:10px;color:#e2e8f0;
-  font-size:.92rem;font-family:'Inter',sans-serif;
+  background:rgba(15,23,42,.8);border:1.5px solid rgba(59,130,246,.15);
+  border-radius:10px;color:#e2e8f0;font-size:.92rem;font-family:'Inter',sans-serif;
   outline:none;transition:all .2s;
 }
-.field input:focus{
-  border-color:rgba(59,130,246,0.55);
-  background:rgba(15,23,42,0.95);
-  box-shadow:0 0 0 3px rgba(59,130,246,0.10);
-}
-.field input::placeholder{color:rgba(100,116,139,0.55);}
+.field input:focus{border-color:rgba(59,130,246,.55);background:rgba(15,23,42,.95);box-shadow:0 0 0 3px rgba(59,130,246,.10);}
+.field input::placeholder{color:rgba(100,116,139,.55);}
 .eye{
   position:absolute;right:14px;top:50%;transform:translateY(-50%);
-  background:none;border:none;cursor:pointer;
-  color:rgba(100,116,139,0.6);font-size:1rem;
-  transition:color .2s;padding:4px;line-height:1;
+  background:none;border:none;cursor:pointer;color:rgba(100,116,139,.6);
+  font-size:1rem;transition:color .2s;padding:4px;line-height:1;
 }
 .eye:hover{color:#60a5fa;}
 
-/* ── MESSAGE ── */
-.msg{
-  padding:11px 14px;border-radius:8px;font-size:.83rem;
-  margin-bottom:18px;display:none;
-  border-left:3px solid;
-}
+.msg{padding:11px 14px;border-radius:8px;font-size:.83rem;margin-bottom:18px;display:none;border-left:3px solid;}
 .msg.show{display:block;}
-.msg-error{background:rgba(239,68,68,0.08);color:#fca5a5;border-color:#ef4444;}
-.msg-success{background:rgba(34,197,94,0.08);color:#86efac;border-color:#22c55e;}
-.msg-info{background:rgba(59,130,246,0.08);color:#93c5fd;border-color:#3b82f6;}
+.msg-error{background:rgba(239,68,68,.08);color:#fca5a5;border-color:#ef4444;}
+.msg-success{background:rgba(34,197,94,.08);color:#86efac;border-color:#22c55e;}
+.msg-info{background:rgba(59,130,246,.08);color:#93c5fd;border-color:#3b82f6;}
 
-/* ── BUTTONS ── */
-.btn{
-  width:100%;padding:14px;border:none;border-radius:10px;
-  font-size:.92rem;font-weight:600;cursor:pointer;
-  font-family:'Inter',sans-serif;transition:all .25s;
-  letter-spacing:.3px;
-}
-.btn-primary{
-  background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);
-  color:#fff;box-shadow:0 4px 20px rgba(59,130,246,0.30);
-  margin-bottom:12px;
-}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(59,130,246,0.45);}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:.92rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .25s;letter-spacing:.3px;}
+.btn-primary{background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);color:#fff;box-shadow:0 4px 20px rgba(59,130,246,.30);margin-bottom:12px;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(59,130,246,.45);}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-.btn-ghost{
-  background:rgba(59,130,246,0.07);
-  color:rgba(148,163,184,0.8);
-  border:1.5px solid rgba(59,130,246,0.15);
-}
-.btn-ghost:hover{background:rgba(59,130,246,0.12);color:#93c5fd;}
+.btn-ghost{background:rgba(59,130,246,.07);color:rgba(148,163,184,.8);border:1.5px solid rgba(59,130,246,.15);}
+.btn-ghost:hover{background:rgba(59,130,246,.12);color:#93c5fd;}
 
 .link-row{text-align:center;margin-top:20px;}
 .link-row a{color:#60a5fa;font-size:.83rem;text-decoration:none;}
 .link-row a:hover{color:#93c5fd;text-decoration:underline;}
 
-/* ── SPINNER ── */
-.spin{
-  display:inline-block;width:16px;height:16px;
-  border:2px solid rgba(255,255,255,0.2);
-  border-top-color:#fff;border-radius:50%;
-  animation:sp .6s linear infinite;
-  vertical-align:middle;margin-right:8px;
-}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:8px;}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* ── 2FA OVERLAY ── */
-.overlay{
-  display:none;position:fixed;inset:0;z-index:100;
-  background:rgba(6,8,15,0.80);backdrop-filter:blur(6px);
-  align-items:center;justify-content:center;padding:24px;
-}
+/* 2FA overlay */
+.overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(6,8,15,.80);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:24px;}
 .overlay.show{display:flex;}
 .overlay-card{
-  background:rgba(10,16,35,0.95);
-  border:1px solid rgba(59,130,246,0.25);
-  border-radius:20px;padding:40px;
-  width:100%;max-width:400px;text-align:center;
-  box-shadow:0 24px 80px rgba(0,0,0,0.6);
-  animation:slideUp .3s ease-out;
+  background:rgba(10,16,35,.97);border:1px solid rgba(59,130,246,.25);
+  border-radius:20px;padding:40px;width:100%;max-width:400px;text-align:center;
+  box-shadow:0 24px 80px rgba(0,0,0,.6);animation:slideUp .3s ease-out;
 }
-.overlay-title{
-  font-family:'Montserrat',sans-serif;font-size:1.2rem;
-  font-weight:700;color:#e2e8f0;margin-bottom:8px;
-}
-.overlay-sub{font-size:.82rem;color:rgba(148,163,184,0.65);margin-bottom:28px;}
+.overlay-title{font-family:'Montserrat',sans-serif;font-size:1.2rem;font-weight:700;color:#e2e8f0;margin-bottom:8px;}
+.overlay-sub{font-size:.82rem;color:rgba(148,163,184,.65);margin-bottom:28px;}
 .otp-row{display:flex;gap:10px;justify-content:center;margin-bottom:24px;}
 .otp-d{
-  width:46px;height:54px;
-  background:rgba(15,23,42,0.9);
-  border:1.5px solid rgba(59,130,246,0.20);
-  border-radius:10px;color:#e2e8f0;
-  font-size:1.4rem;font-weight:700;font-family:'Montserrat',sans-serif;
-  text-align:center;outline:none;transition:all .2s;
+  width:46px;height:54px;background:rgba(15,23,42,.9);border:1.5px solid rgba(59,130,246,.20);
+  border-radius:10px;color:#e2e8f0;font-size:1.4rem;font-weight:700;
+  font-family:'Montserrat',sans-serif;text-align:center;outline:none;transition:all .2s;
 }
-.otp-d:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.15);}
+.otp-d:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15);}
 </style>
 </head>
 <body>
 <div class="bg"></div>
-
 <div class="page">
   <div class="card">
     <div class="card-head">
-      <img src="media/logo.png" alt="TURAN" class="card-logo"
-           onerror="this.style.display='none'">
+      <img src="media/logo.png" alt="TURAN" class="card-logo" onerror="this.style.display='none'">
       <div class="card-brand">TURAN</div>
       <div class="card-sub">Вход в систему</div>
     </div>
-
     <div id="msg" class="msg"></div>
-
     <div class="field">
       <label>Логин</label>
       <input id="username" type="text" placeholder="bekishev_ig" autocomplete="username"
              onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-
     <div class="field">
       <label>Пароль</label>
       <div class="input-wrap">
@@ -199,24 +116,20 @@ body{font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;backgroun
         <button class="eye" type="button" onclick="toggleEye('password',this)">👁</button>
       </div>
     </div>
-
     <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Войти</button>
     <button class="btn btn-ghost" onclick="location.href='index.html'">← На главную</button>
-
-    <div class="link-row">
-      Нет аккаунта? <a href="register.html">Зарегистрироваться</a>
-    </div>
+    <div class="link-row">Нет аккаунта? <a href="register.html">Зарегистрироваться</a></div>
   </div>
 </div>
 
-<!-- 2FA Overlay -->
+<!-- 2FA overlay -->
 <div class="overlay" id="overlay-2fa">
   <div class="overlay-card">
-    <div style="font-size:2rem;margin-bottom:12px;">🔐</div>
+    <div style="font-size:2rem;margin-bottom:12px">🔐</div>
     <div class="overlay-title">Двухфакторная аутентификация</div>
     <div class="overlay-sub">Введите 6-значный код из приложения аутентификатора</div>
     <div id="msg-2fa" class="msg" style="text-align:left"></div>
-    <div class="otp-row" id="otp-row">
+    <div class="otp-row">
       <input class="otp-d" maxlength="1" oninput="otpNext(this,0)">
       <input class="otp-d" maxlength="1" oninput="otpNext(this,1)">
       <input class="otp-d" maxlength="1" oninput="otpNext(this,2)">
@@ -230,25 +143,17 @@ body{font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;backgroun
 </div>
 
 <script>
-const SUPA_URL  = 'https://duorjhmhmqxushmldccv.supabase.co';
-const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1b3JqaG1obXF4dXNobWxkY2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzYyMTgsImV4cCI6MjA5MjI1MjIxOH0.VQPga6s3Ft0Zvd5xRTS6cUfNi5gc-6YXfkU5YTKfRRM';
-const SUPA_SVC = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1b3JqaG1obXF4dXNobWxkY2N2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjY3NjIxOCwiZXhwIjoyMDkyMjUyMjE4fQ.fVpM_MrQpxmZwzIFYMWq_R6JAG_rNMQvIJUMwId5lnk';
-const sb = supabase.createClient(SUPA_URL, SUPA_ANON);
-const sbAdmin = supabase.createClient(SUPA_URL, SUPA_SVC);
-
 let _pending2fa = null;
 
 function toggleEye(id, btn){
   const el=document.getElementById(id);
-  el.type = el.type==='password'?'text':'password';
-  btn.textContent = el.type==='password'?'👁':'🙈';
+  el.type=el.type==='password'?'text':'password';
+  btn.textContent=el.type==='password'?'👁':'🙈';
 }
-
-function showMsg(id,text,type){
+function showMsg(id, text, type){
   const el=document.getElementById(id);
-  el.textContent=text; el.className='msg msg-'+type+' show';
+  el.innerHTML=text; el.className='msg msg-'+type+' show';
 }
-
 function setLoading(on){
   const btn=document.getElementById('login-btn');
   btn.disabled=on;
@@ -267,17 +172,19 @@ async function doLogin(){
   if(error){
     setLoading(false);
     let m='Неверный логин или пароль';
-    if(error.message.includes('Email not confirmed')) m='Email не подтверждён. Отключите подтверждение в Supabase → Auth → Providers → Email.';
-    else if(error.status===500) m='Ошибка сервера. Убедитесь что SQL-скрипт выполнен и пользователь создан через Dashboard.';
+    if(error.message?.includes('Email not confirmed'))
+      m='⚠️ Email не подтверждён. Supabase → Authentication → Providers → Email → выключи "Confirm email"';
+    else if(error.status===500)
+      m='⚠️ Ошибка сервера (500). Убедитесь что пользователь создан через Authentication → Users в Supabase Dashboard, а не через SQL INSERT.';
     showMsg('msg',m,'error');
     return;
   }
 
-  // Check 2FA
+  // Проверка 2FA
   const {data:{factors}}=await sb.auth.mfa.listFactors();
   const totp=factors?.totp?.find(f=>f.status==='verified');
   if(totp){
-    _pending2fa={factorId:totp.id};
+    _pending2fa={factorId:totp.id, user:data.user, username};
     setLoading(false);
     document.getElementById('overlay-2fa').classList.add('show');
     document.querySelector('.otp-d').focus();
@@ -289,44 +196,43 @@ async function doLogin(){
 
 async function verify2fa(){
   if(!_pending2fa) return;
-  const digits=[...document.querySelectorAll('.otp-d')].map(i=>i.value);
-  const code=digits.join('');
+  const code=[...document.querySelectorAll('.otp-d')].map(i=>i.value).join('');
   if(code.length!==6){showMsg('msg-2fa','Введите все 6 цифр','error');return;}
-
-  const {data:ch}=await sb.auth.mfa.challenge({factorId:_pending2fa.factorId});
+  const {data:ch,error:ce}=await sb.auth.mfa.challenge({factorId:_pending2fa.factorId});
+  if(ce){showMsg('msg-2fa','Ошибка: '+ce.message,'error');return;}
   const {error}=await sb.auth.mfa.verify({factorId:_pending2fa.factorId,challengeId:ch.id,code});
-  if(error){showMsg('msg-2fa','Неверный код','error');return;}
-
-  const {data:{user}}=await sb.auth.getUser();
-  const username=document.getElementById('username').value.trim();
-  await afterLogin(user,username);
+  if(error){showMsg('msg-2fa','Неверный код. Попробуйте ещё раз.','error');return;}
+  await afterLogin(_pending2fa.user, _pending2fa.username);
+  _pending2fa=null;
 }
 
-async function afterLogin(user,username){
-  // Read existing profile with sbAdmin (bypasses RLS completely)
-  try {
-    const {data:existing} = await sbAdmin.from('profiles').select('id').eq('id',user.id).maybeSingle();
-    if(!existing){
-      const meta = user.user_metadata || {};
-      await sbAdmin.from('profiles').insert({
-        id: user.id,
-        full_name: meta.full_name || username,
-        username: meta.username || username,
-        role: meta.role || 'teacher',
-        department: meta.department || '',
-        is_active: true
-      });
-    }
-  } catch(e){ console.warn('profile ensure failed', e); }
+async function afterLogin(user, username){
+  // Убеждаемся что профиль существует (используем sbAdmin чтобы обойти RLS)
+  const {data:existing}=await sbAdmin
+    .from('profiles').select('id').eq('id',user.id).maybeSingle();
 
-  // Log event with sbAdmin
-  try {
-    await sbAdmin.from('audit_logs').insert([{
-      user_id:user.id, username,
-      event_type:'login', description:'Успешный вход', status:'success'
-    }]);
-  } catch(e){ console.warn('audit log failed',e); }
+  if(!existing){
+    const meta=user.user_metadata||{};
+    await sbAdmin.from('profiles').insert({
+      id:user.id,
+      full_name:meta.full_name||username,
+      username:meta.username||username,
+      role:meta.role||'teacher',
+      department:meta.department||'',
+      is_active:true
+    });
+  }
 
+  // Обновляем last_login
+  await sbAdmin.from('profiles').update({last_login:new Date().toISOString()}).eq('id',user.id);
+
+  // Записываем в журнал
+  await sbAdmin.from('audit_logs').insert({
+    user_id:user.id, username,
+    event_type:'login', description:'Успешный вход', status:'success'
+  }).catch(()=>{});
+
+  // Переходим на дашборд
   location.href='dashboard.html';
 }
 
@@ -339,8 +245,12 @@ function otpNext(el,idx){
   }
 }
 
-// Auto-focus
-document.getElementById('username').focus();
+// Если уже залогинен — сразу на дашборд
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(session) location.href='dashboard.html';
+  else document.getElementById('username').focus();
+})();
 </script>
 </body>
 </html>

@@ -5,133 +5,79 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TURAN — Система безопасности</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-shared.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{
-  font-family:'Inter',sans-serif;
-  min-height:100vh;overflow:hidden;
-  background:#06080f;
-}
+body{font-family:'Inter',sans-serif;min-height:100vh;overflow:hidden;background:#06080f;}
 
-/* ── BG ── */
-.bg{
-  position:fixed;inset:0;
-  background:url('media/Fon.png') center/cover no-repeat;
-  z-index:0;
-}
-.bg::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(180deg,
-    rgba(6,8,15,0.70) 0%,
-    rgba(6,12,28,0.60) 40%,
-    rgba(6,8,15,0.85) 100%);
-}
-/* Orb glow */
+.bg{position:fixed;inset:0;background:url('media/Fon.png') center/cover no-repeat;z-index:0;}
+.bg::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(6,8,15,.72) 0%,rgba(6,12,28,.60) 40%,rgba(6,8,15,.88) 100%);}
+
 .orb{
-  position:fixed;
-  width:700px;height:700px;border-radius:50%;
-  background:radial-gradient(circle,rgba(59,130,246,0.10) 0%,transparent 65%);
+  position:fixed;width:700px;height:700px;border-radius:50%;
+  background:radial-gradient(circle,rgba(59,130,246,.11) 0%,transparent 65%);
   top:50%;left:50%;transform:translate(-50%,-52%);
   z-index:1;pointer-events:none;
   animation:breathe 5s ease-in-out infinite alternate;
 }
 @keyframes breathe{
-  from{transform:translate(-50%,-52%) scale(0.95);opacity:.7;}
+  from{transform:translate(-50%,-52%) scale(.95);opacity:.7;}
   to{transform:translate(-50%,-48%) scale(1.1);opacity:1;}
 }
 
-/* ── CENTER CONTENT ── */
 .center{
-  position:relative;z-index:2;
-  min-height:100vh;
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  padding:40px 24px 80px;
-  text-align:center;
+  position:relative;z-index:2;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 24px 80px;text-align:center;
 }
-
 .logo{
-  width:96px;height:96px;object-fit:contain;
-  margin-bottom:36px;
-  filter:drop-shadow(0 0 28px rgba(59,130,246,0.55));
+  width:100px;height:100px;object-fit:contain;margin-bottom:36px;
+  filter:drop-shadow(0 0 28px rgba(59,130,246,.55));
   animation:logoPulse 4s ease-in-out infinite alternate;
 }
 @keyframes logoPulse{
-  from{filter:drop-shadow(0 0 20px rgba(59,130,246,0.4));}
-  to{filter:drop-shadow(0 0 50px rgba(59,130,246,0.75));}
+  from{filter:drop-shadow(0 0 20px rgba(59,130,246,.4));}
+  to{filter:drop-shadow(0 0 50px rgba(59,130,246,.75));}
 }
 .no-logo{
-  width:96px;height:96px;border-radius:24px;margin-bottom:36px;
+  width:100px;height:100px;border-radius:24px;margin-bottom:36px;
   background:linear-gradient(135deg,#1d4ed8,#3b82f6);
   display:flex;align-items:center;justify-content:center;
-  font-family:'Montserrat',sans-serif;font-size:1.6rem;font-weight:900;color:#fff;
-  box-shadow:0 0 40px rgba(59,130,246,0.5);
+  font-family:'Montserrat',sans-serif;font-size:1.8rem;font-weight:900;color:#fff;
+  box-shadow:0 0 40px rgba(59,130,246,.5);
 }
-
 .title{
-  font-family:'Montserrat',sans-serif;
-  font-size:7.5rem;font-weight:900;
-  letter-spacing:18px;line-height:1;
-  margin-bottom:12px;
+  font-family:'Montserrat',sans-serif;font-size:7.5rem;font-weight:900;
+  letter-spacing:18px;line-height:1;margin-bottom:12px;
   background:linear-gradient(135deg,#ffffff 0%,#bfdbfe 35%,#60a5fa 65%,#2563eb 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
-.sub{
-  font-size:.72rem;letter-spacing:4px;text-transform:uppercase;
-  color:rgba(148,163,184,0.7);font-weight:500;margin-bottom:6px;
-}
-.divider{
-  width:56px;height:1.5px;margin:20px auto 44px;
-  background:linear-gradient(90deg,transparent,#3b82f6,transparent);
-}
+.sub{font-size:.72rem;letter-spacing:4px;text-transform:uppercase;color:rgba(148,163,184,.7);font-weight:500;margin-bottom:6px;}
+.divider{width:56px;height:1.5px;margin:20px auto 44px;background:linear-gradient(90deg,transparent,#3b82f6,transparent);}
 
-/* ── BUTTONS ── */
 .actions{display:flex;gap:16px;justify-content:center;}
 .btn{
   padding:14px 44px;border:none;border-radius:10px;
-  font-size:.92rem;font-weight:600;cursor:pointer;
-  font-family:'Inter',sans-serif;letter-spacing:.3px;
-  transition:all .25s;text-decoration:none;display:inline-flex;align-items:center;
+  font-size:.92rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;
+  letter-spacing:.3px;transition:all .25s;text-decoration:none;display:inline-flex;align-items:center;
 }
-.btn-primary{
-  background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);
-  color:#fff;
-  box-shadow:0 4px 24px rgba(59,130,246,0.35);
-}
-.btn-primary:hover{
-  transform:translateY(-3px);
-  box-shadow:0 8px 36px rgba(59,130,246,0.50);
-}
-.btn-secondary{
-  background:rgba(59,130,246,0.10);
-  color:#93c5fd;
-  border:1.5px solid rgba(59,130,246,0.30);
-}
-.btn-secondary:hover{
-  background:rgba(59,130,246,0.18);
-  border-color:rgba(59,130,246,0.55);
-  transform:translateY(-3px);
-}
+.btn-primary{background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);color:#fff;box-shadow:0 4px 24px rgba(59,130,246,.35);}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 8px 36px rgba(59,130,246,.50);}
+.btn-secondary{background:rgba(59,130,246,.10);color:#93c5fd;border:1.5px solid rgba(59,130,246,.30);}
+.btn-secondary:hover{background:rgba(59,130,246,.18);border-color:rgba(59,130,246,.55);transform:translateY(-3px);}
 
-/* ── BOTTOM ── */
 .bottom{
   position:fixed;bottom:0;left:0;right:0;z-index:3;
-  padding:14px 48px;
-  border-top:1px solid rgba(59,130,246,0.08);
-  background:rgba(6,8,15,0.65);backdrop-filter:blur(14px);
+  padding:14px 48px;border-top:1px solid rgba(59,130,246,.08);
+  background:rgba(6,8,15,.65);backdrop-filter:blur(14px);
   display:flex;align-items:center;justify-content:space-between;
 }
-.bottom-left{
-  font-size:.66rem;letter-spacing:3px;text-transform:uppercase;
-  color:rgba(100,116,139,0.7);
-}
+.bottom-left,.bottom-right{font-size:.66rem;letter-spacing:3px;text-transform:uppercase;color:rgba(100,116,139,.7);}
 .bottom-dots{display:flex;gap:5px;align-items:center;}
-.dot{
-  width:5px;height:5px;border-radius:50%;
-  background:#3b82f6;opacity:.35;
-}
+.dot{width:5px;height:5px;border-radius:50%;background:#3b82f6;opacity:.35;}
 .dot:first-child{opacity:1;background:#60a5fa;}
-.bottom-right{font-size:.66rem;color:rgba(100,116,139,0.7);}
 
 @media(max-width:600px){
   .title{font-size:4.5rem;letter-spacing:10px;}
@@ -144,7 +90,6 @@ body{
 <body>
 <div class="bg"></div>
 <div class="orb"></div>
-
 <div class="center">
   <img src="media/logo.png" alt="TURAN" class="logo"
        onerror="this.outerHTML='<div class=\'no-logo\'>T</div>'">
@@ -156,13 +101,17 @@ body{
     <a href="register.html" class="btn btn-secondary">Регистрация</a>
   </div>
 </div>
-
 <div class="bottom">
   <span class="bottom-left">TURAN Security Platform</span>
-  <div class="bottom-dots">
-    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-  </div>
+  <div class="bottom-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
   <span class="bottom-right">v2.0 · 2025</span>
 </div>
+<script>
+// Если уже залогинен — сразу на дашборд
+(async()=>{
+  const {data:{session}} = await sb.auth.getSession();
+  if(session) location.href='dashboard.html';
+})();
+</script>
 </body>
 </html>

@@ -7,7 +7,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="supabase-shared.js"></script>
 <style>
+
 
 :root {
   --bg: #06080f;
@@ -468,6 +470,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 #page-app { display: flex !important; }
 .view { display: none; }
 .view.active { display: block; }
+
+/* Dashboard always flex */
+#page-app { display: flex !important; min-height: 100vh; }
+.view { display: none; }
+.view.active { display: block; }
 </style>
 </head>
 <body>
@@ -863,17 +870,73 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
 </div>
 
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Create User Modal -->
+<div class="modal-overlay" id="modal-create-user">
+  <div class="modal">
+    <div class="modal-title">➕ Создать пользователя</div>
+    <div id="cu-msg" class="msg"></div>
+    <div class="form-group">
+      <label class="form-label">ФИО (полностью)</label>
+      <input id="cu-fullname" class="form-input" type="text" placeholder="Иванов Иван Иванович" oninput="onCuFullName()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Логин (автогенерация)</label>
+      <div class="input-wrap">
+        <input id="cu-username" class="form-input readonly" type="text" readonly>
+        <button class="input-copy" onclick="copyText('cu-username')">Копировать</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input id="cu-email" class="form-input" type="email" placeholder="ivanov_ii@turan.kz">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Отдел / Должность</label>
+      <input id="cu-dept" class="form-input" type="text" placeholder="Кафедра информатики">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Роль</label>
+      <select id="cu-role" class="form-input" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:13px 16px;">
+        <option value="teacher">Преподаватель</option>
+        <option value="admin">Администратор</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Пароль (автогенерация)</label>
+      <div class="input-wrap">
+        <input id="cu-password" class="form-input" type="text" readonly>
+        <button class="input-copy" onclick="regenCuPassword()">⚡ Новый</button>
+      </div>
+    </div>
+    <div id="cu-result" style="display:none">
+      <div class="creds-box">
+        <div class="creds-box-title">🎉 Учётные данные созданы</div>
+        <div class="creds-row">
+          <span class="creds-label">Логин:</span>
+          <span class="creds-val" id="cu-res-login">—</span>
+          <button class="creds-copy" onclick="copyText2('cu-res-login')">📋</button>
+        </div>
+        <div class="creds-row">
+          <span class="creds-label">Пароль:</span>
+          <span class="creds-val" id="cu-res-password">—</span>
+          <button class="creds-copy" onclick="copyText2('cu-res-password')">📋</button>
+        </div>
+        <p style="color:var(--text3);font-size:.78rem;margin-top:10px;">⚠️ Сохраните пароль — он показывается только один раз!</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-user')">Отмена</button>
+      <button class="btn btn-gold" id="cu-submit" onclick="doCreateUser()">Создать</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ═══════════════════════════════════════════════════════
-//  CONFIG
-// ═══════════════════════════════════════════════════════
-const SUPA_URL = 'https://duorjhmhmqxushmldccv.supabase.co';
-const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1b3JqaG1obXF4dXNobWxkY2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzYyMTgsImV4cCI6MjA5MjI1MjIxOH0.VQPga6s3Ft0Zvd5xRTS6cUfNi5gc-6YXfkU5YTKfRRM';
-const SUPA_SVC  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1b3JqaG1obXF4dXNobWxkY2N2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjY3NjIxOCwiZXhwIjoyMDkyMjUyMjE4fQ.fVpM_MrQpxmZwzIFYMWq_R6JAG_rNMQvIJUMwId5lnk';
-
-const sb  = supabase.createClient(SUPA_URL, SUPA_ANON);
-const sbAdmin = supabase.createClient(SUPA_URL, SUPA_SVC);
-
+// ═══ STATE ═══════════════════════════════════════════
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
@@ -1639,47 +1702,52 @@ document.querySelectorAll('.modal-overlay').forEach(overlay=>{
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
+
+// ═══ INIT (fixed — uses shared sb/sbAdmin from supabase-shared.js) ════
+
 async function init(){
   initPolicyInputs();
 
+  // Check session — sb uses storageKey 'turan-auth' set in supabase-shared.js
   const {data:{session}} = await sb.auth.getSession();
-  if(!session){ location.href='login.html'; return; }
+  if(!session){
+    console.warn('No session found, redirecting to login');
+    location.href='login.html';
+    return;
+  }
 
   currentUser = session.user;
 
-  // Try anon read first, fallback to sbAdmin (service_role bypasses RLS)
+  // Load profile via sbAdmin (bypasses RLS — works always)
   let p = null;
-  try {
-    const res = await sb.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
-    p = res.data;
-  } catch(e){}
+  const {data:profileData, error:profileErr} = await sbAdmin
+    .from('profiles').select('*').eq('id', session.user.id).maybeSingle();
 
-  if(!p){
-    try {
-      const res = await sbAdmin.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
-      p = res.data;
-    } catch(e){}
-  }
+  if(profileErr) console.error('Profile fetch error:', profileErr);
+  p = profileData;
 
+  // If profile missing — auto-create from auth metadata
   if(!p){
-    // Profile still missing — create it from auth metadata
     const meta = session.user.user_metadata || {};
     const username = meta.username || session.user.email?.split('@')[0] || 'user';
-    try {
-      await sbAdmin.from('profiles').upsert({
-        id: session.user.id,
-        full_name: meta.full_name || username,
-        username,
-        role: meta.role || 'teacher',
-        department: meta.department || '',
-        is_active: true
-      }, {onConflict:'id'});
-      const res = await sbAdmin.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
-      p = res.data;
-    } catch(e){ console.error('profile create failed', e); }
+    const {data:newProfile, error:createErr} = await sbAdmin.from('profiles').insert({
+      id: session.user.id,
+      full_name: meta.full_name || username,
+      username,
+      role: meta.role || 'teacher',
+      department: meta.department || '',
+      is_active: true
+    }).select().single();
+    if(createErr) console.error('Profile create error:', createErr);
+    p = newProfile;
   }
 
-  if(!p){ location.href='login.html'; return; }
+  if(!p){
+    console.error('Could not load or create profile');
+    alert('Ошибка загрузки профиля. Обратитесь к администратору.');
+    location.href='login.html';
+    return;
+  }
 
   currentProfile = p;
   await loadPolicy();
@@ -1687,15 +1755,14 @@ async function init(){
 }
 
 document.addEventListener('DOMContentLoaded', init);
-</script>
 
-<script>
-// Patch for standalone dashboard
+
+// ═══ MODAL CLOSE ON OVERLAY CLICK ════════════════════
 document.querySelectorAll('.modal-overlay').forEach(o=>{
-  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');});
+  o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
 });
 
-// Override doLogout for dashboard
+// ═══ LOGOUT OVERRIDE (redirect to index) ══════════════
 async function doLogout(){
   if(currentProfile) await logEvent(currentUser?.id||null, currentProfile.username,'logout','Выход из системы','success');
   await sb.auth.signOut();
@@ -1703,15 +1770,8 @@ async function doLogout(){
   location.href='index.html';
 }
 
-// Override show2faSetup to use modal
-async function show2faSetup(){
-  document.getElementById('modal-2fa-setup').classList.add('open');
-  const {data,error} = await sb.auth.mfa.enroll({factorType:'totp', friendlyName:'TURAN 2FA'});
-  if(error){ console.error(error); return; }
-  _2faEnrollId = data.id;
-  document.getElementById('totp-secret-display').textContent = data.totp.secret;
-  QRCode.toCanvas(document.getElementById('qr-canvas'), data.totp.uri, {width:160,margin:1});
-}
+// ═══ showPage override (not needed in dashboard) ═══════
+function showPage(id){ /* no-op — dashboard is standalone */ }
 </script>
 </body>
 </html>

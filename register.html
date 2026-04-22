@@ -6,146 +6,69 @@
 <title>TURAN — Регистрация</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-shared.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
-
-.bg{
-  position:fixed;inset:0;
-  background:url('media/Fon.png') center/cover no-repeat;
-  z-index:0;
-}
-.bg::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(6,8,15,0.88) 0%,rgba(6,12,30,0.82) 100%);
-}
-
-.page{
-  position:relative;z-index:1;
-  min-height:100vh;
-  display:flex;align-items:center;justify-content:center;
-  padding:24px;
-}
-
+.bg{position:fixed;inset:0;background:url('media/Fon.png') center/cover no-repeat;z-index:0;}
+.bg::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(6,8,15,.88) 0%,rgba(6,12,30,.82) 100%);}
+.page{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
 .card{
-  width:100%;max-width:460px;
-  background:rgba(10,16,35,0.85);
-  backdrop-filter:blur(24px);
-  border:1px solid rgba(59,130,246,0.18);
-  border-radius:20px;
-  padding:40px 40px;
-  box-shadow:0 24px 80px rgba(0,0,0,0.55),
-             inset 0 1px 0 rgba(255,255,255,0.04);
+  width:100%;max-width:460px;background:rgba(10,16,35,.88);backdrop-filter:blur(24px);
+  border:1px solid rgba(59,130,246,.18);border-radius:20px;padding:40px;
+  box-shadow:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04);
   animation:up .4s cubic-bezier(.16,1,.3,1);
 }
 @keyframes up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-
-.card-head{text-align:center;margin-bottom:32px;}
-.card-logo{width:58px;height:58px;object-fit:contain;margin-bottom:16px;
-  filter:drop-shadow(0 0 18px rgba(59,130,246,0.5));}
+.card-head{text-align:center;margin-bottom:28px;}
+.card-logo{width:58px;height:58px;object-fit:contain;margin-bottom:16px;filter:drop-shadow(0 0 18px rgba(59,130,246,.5));}
 .card-brand{
   font-family:'Montserrat',sans-serif;font-size:1.8rem;font-weight:900;letter-spacing:5px;
   background:linear-gradient(135deg,#fff 0%,#bfdbfe 40%,#60a5fa 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  margin-bottom:5px;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:5px;
 }
-.card-sub{font-size:.72rem;color:rgba(148,163,184,0.6);letter-spacing:2px;text-transform:uppercase;}
-
-.field{margin-bottom:18px;}
-.field label{
-  display:block;font-size:.71rem;font-weight:600;
-  color:rgba(148,163,184,0.70);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;
-}
+.card-sub{font-size:.72rem;color:rgba(148,163,184,.6);letter-spacing:2px;text-transform:uppercase;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:.71rem;font-weight:600;color:rgba(148,163,184,.70);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;}
 .input-wrap{position:relative;}
-.field input,.field select{
-  width:100%;padding:12px 16px;
-  background:rgba(15,23,42,0.8);
-  border:1.5px solid rgba(59,130,246,0.15);
-  border-radius:10px;color:#e2e8f0;
-  font-size:.9rem;font-family:'Inter',sans-serif;
-  outline:none;transition:all .2s;
+.field input{
+  width:100%;padding:12px 16px;background:rgba(15,23,42,.8);
+  border:1.5px solid rgba(59,130,246,.15);border-radius:10px;color:#e2e8f0;
+  font-size:.9rem;font-family:'Inter',sans-serif;outline:none;transition:all .2s;
 }
-.field input:focus,.field select:focus{
-  border-color:rgba(59,130,246,0.5);
-  background:rgba(15,23,42,0.95);
-  box-shadow:0 0 0 3px rgba(59,130,246,0.09);
-}
-.field input::placeholder{color:rgba(100,116,139,0.5);}
-.field input[readonly]{background:rgba(10,20,45,0.6);color:rgba(148,163,184,0.7);cursor:default;}
-.eye,.gen{
-  position:absolute;top:50%;transform:translateY(-50%);
-  background:none;border:none;cursor:pointer;
-  color:rgba(100,116,139,0.6);font-size:.95rem;
-  transition:color .2s;padding:4px;line-height:1;
-}
-.eye{right:14px;}
+.field input:focus{border-color:rgba(59,130,246,.5);background:rgba(15,23,42,.95);box-shadow:0 0 0 3px rgba(59,130,246,.09);}
+.field input::placeholder{color:rgba(100,116,139,.5);}
+.field input[readonly]{background:rgba(10,20,45,.6);color:rgba(148,163,184,.7);cursor:default;}
+.eye,.gen{position:absolute;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(100,116,139,.6);font-size:.95rem;transition:color .2s;padding:4px;line-height:1;}
+.eye{right:14px;} .gen{right:40px;font-size:.8rem;}
 .eye:hover,.gen:hover{color:#60a5fa;}
-.gen{right:40px;font-size:.8rem;}
-
-/* copy btn for username */
 .copy-btn{
   position:absolute;right:10px;top:50%;transform:translateY(-50%);
-  background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.2);
-  border-radius:6px;padding:4px 10px;cursor:pointer;
-  color:#60a5fa;font-size:.72rem;font-weight:600;transition:all .2s;
+  background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2);
+  border-radius:6px;padding:4px 10px;cursor:pointer;color:#60a5fa;font-size:.72rem;font-weight:600;transition:all .2s;
 }
-.copy-btn:hover{background:rgba(59,130,246,0.22);}
-
-/* password strength */
+.copy-btn:hover{background:rgba(59,130,246,.22);}
 .pw-bars{display:flex;gap:5px;margin-top:8px;}
-.pw-bar{
-  flex:1;height:3px;border-radius:3px;
-  background:rgba(59,130,246,0.12);transition:background .3s;
-}
-.pw-bar.ok{background:#3b82f6;}
-.pw-bar.good{background:#06b6d4;}
-.pw-bar.great{background:#22c55e;}
-
+.pw-bar{flex:1;height:3px;border-radius:3px;background:rgba(59,130,246,.12);transition:background .3s;}
+.pw-bar.weak{background:#ef4444;} .pw-bar.ok{background:#3b82f6;} .pw-bar.good{background:#06b6d4;} .pw-bar.great{background:#22c55e;}
 .pw-inds{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
-.pw-ind{
-  padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;
-  background:rgba(15,23,42,0.8);color:rgba(100,116,139,0.6);
-  border:1px solid rgba(59,130,246,0.10);transition:all .25s;
-}
-.pw-ind.ok{background:rgba(59,130,246,0.12);color:#93c5fd;border-color:rgba(59,130,246,0.25);}
-
-.msg{
-  padding:11px 14px;border-radius:8px;font-size:.83rem;
-  margin-bottom:16px;display:none;border-left:3px solid;
-}
+.pw-ind{padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;background:rgba(15,23,42,.8);color:rgba(100,116,139,.6);border:1px solid rgba(59,130,246,.10);transition:all .25s;}
+.pw-ind.ok{background:rgba(59,130,246,.12);color:#93c5fd;border-color:rgba(59,130,246,.25);}
+.msg{padding:11px 14px;border-radius:8px;font-size:.83rem;margin-bottom:16px;display:none;border-left:3px solid;}
 .msg.show{display:block;}
-.msg-error{background:rgba(239,68,68,0.08);color:#fca5a5;border-color:#ef4444;}
-.msg-success{background:rgba(34,197,94,0.08);color:#86efac;border-color:#22c55e;}
-.msg-info{background:rgba(59,130,246,0.08);color:#93c5fd;border-color:#3b82f6;}
-
-.btn{
-  width:100%;padding:13px;border:none;border-radius:10px;
-  font-size:.9rem;font-weight:600;cursor:pointer;
-  font-family:'Inter',sans-serif;transition:all .25s;
-}
-.btn-primary{
-  background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);
-  color:#fff;box-shadow:0 4px 20px rgba(59,130,246,0.28);
-  margin-bottom:10px;
-}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(59,130,246,0.42);}
+.msg-error{background:rgba(239,68,68,.08);color:#fca5a5;border-color:#ef4444;}
+.msg-success{background:rgba(34,197,94,.08);color:#86efac;border-color:#22c55e;}
+.msg-info{background:rgba(59,130,246,.08);color:#93c5fd;border-color:#3b82f6;}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .25s;}
+.btn-primary{background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);color:#fff;box-shadow:0 4px 20px rgba(59,130,246,.28);margin-bottom:10px;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(59,130,246,.42);}
 .btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;}
-.btn-ghost{
-  background:rgba(59,130,246,0.06);color:rgba(148,163,184,0.75);
-  border:1.5px solid rgba(59,130,246,0.13);
-}
-.btn-ghost:hover{background:rgba(59,130,246,0.12);color:#93c5fd;}
-
-.link-row{text-align:center;margin-top:18px;font-size:.82rem;}
+.btn-ghost{background:rgba(59,130,246,.06);color:rgba(148,163,184,.75);border:1.5px solid rgba(59,130,246,.13);}
+.btn-ghost:hover{background:rgba(59,130,246,.12);color:#93c5fd;}
+.link-row{text-align:center;margin-top:16px;font-size:.82rem;color:rgba(148,163,184,.6);}
 .link-row a{color:#60a5fa;text-decoration:none;}
 .link-row a:hover{color:#93c5fd;text-decoration:underline;}
-
-.spin{
-  display:inline-block;width:14px;height:14px;
-  border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;
-  border-radius:50%;animation:sp .6s linear infinite;
-  vertical-align:middle;margin-right:7px;
-}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:7px;}
 @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -154,38 +77,31 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
 <div class="page">
   <div class="card">
     <div class="card-head">
-      <img src="media/logo.png" alt="TURAN" class="card-logo"
-           onerror="this.style.display='none'">
+      <img src="media/logo.png" alt="TURAN" class="card-logo" onerror="this.style.display='none'">
       <div class="card-brand">TURAN</div>
       <div class="card-sub">Регистрация</div>
     </div>
-
     <div id="msg" class="msg"></div>
-
     <div class="field">
       <label>ФИО (полностью)</label>
       <input id="fullname" type="text" placeholder="Иванов Иван Иванович" oninput="onFio()">
     </div>
-
     <div class="field">
       <label>Логин (генерируется автоматически)</label>
       <div class="input-wrap">
-        <input id="username" type="text" readonly placeholder="ivanov_ii" style="padding-right:90px">
+        <input id="username" type="text" readonly placeholder="ivanov_ii" style="padding-right:95px">
         <button class="copy-btn" onclick="copyVal('username')">Копировать</button>
       </div>
     </div>
-
     <div class="field">
       <label>Отдел / Должность</label>
       <input id="dept" type="text" placeholder="Кафедра информатики">
     </div>
-
     <div class="field">
       <label>Пароль</label>
       <div class="input-wrap">
-        <input id="password" type="password" placeholder="••••••••"
-               oninput="checkStrength()" style="padding-right:70px">
-        <button class="gen" type="button" onclick="genPw()" title="Сгенерировать">⚡</button>
+        <input id="password" type="password" placeholder="••••••••" oninput="checkStrength()" style="padding-right:72px">
+        <button class="gen" type="button" onclick="genPw()" title="Сгенерировать пароль">⚡</button>
         <button class="eye" type="button" onclick="toggleEye('password',this)">👁</button>
       </div>
       <div class="pw-bars"><div class="pw-bar" id="b1"></div><div class="pw-bar" id="b2"></div><div class="pw-bar" id="b3"></div><div class="pw-bar" id="b4"></div></div>
@@ -197,7 +113,6 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
         <span class="pw-ind" id="pi-sym">!@#</span>
       </div>
     </div>
-
     <div class="field">
       <label>Подтвердить пароль</label>
       <div class="input-wrap">
@@ -205,22 +120,14 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
         <button class="eye" type="button" onclick="toggleEye('confirm',this)">👁</button>
       </div>
     </div>
-
     <button class="btn btn-primary" id="reg-btn" onclick="doRegister()">Зарегистрироваться</button>
     <button class="btn btn-ghost" onclick="location.href='index.html'">← На главную</button>
-
-    <div class="link-row">
-      Уже есть аккаунт? <a href="login.html">Войти</a>
-    </div>
+    <div class="link-row">Уже есть аккаунт? <a href="login.html">Войти</a></div>
   </div>
 </div>
 
 <script>
-const SUPA_URL  = 'https://duorjhmhmqxushmldccv.supabase.co';
-const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1b3JqaG1obXF4dXNobWxkY2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzYyMTgsImV4cCI6MjA5MjI1MjIxOH0.VQPga6s3Ft0Zvd5xRTS6cUfNi5gc-6YXfkU5YTKfRRM';
-const sb = supabase.createClient(SUPA_URL, SUPA_ANON);
-
-// ── Transliteration ──
+// Транслитерация
 const MAP={а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',ә:'a',ғ:'g',қ:'k',ң:'n',ө:'o',ұ:'u',ү:'u',һ:'h',і:'i'};
 function tr(s){return[...s.toLowerCase()].map(c=>MAP[c]!==undefined?MAP[c]:c).join('');}
 function genUsername(fio){
@@ -228,18 +135,15 @@ function genUsername(fio){
   if(p.length<2) return '';
   return (tr(p[0])+(tr(p[1])[0]||'')+(tr(p[2]||'')[0]||'')).replace(/[^a-z0-9_]/g,'');
 }
-function onFio(){
-  document.getElementById('username').value=genUsername(document.getElementById('fullname').value);
-}
+function onFio(){document.getElementById('username').value=genUsername(document.getElementById('fullname').value);}
 
-// ── Password ──
+// Генерация пароля
 function rc(s){const a=new Uint32Array(1);crypto.getRandomValues(a);return s[a[0]%s.length];}
 function shuffle(s){const a=[...s];for(let i=a.length-1;i>0;i--){const r=new Uint32Array(1);crypto.getRandomValues(r);const j=r[0]%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a.join('');}
 function genPw(){
   const U='ABCDEFGHIJKLMNOPQRSTUVWXYZ',L='abcdefghijklmnopqrstuvwxyz',N='0123456789',S='!@#$%^&*';
   let pw=rc(U)+rc(L)+rc(N)+rc(S);
-  const all=U+L+N+S;
-  for(let i=4;i<14;i++) pw+=rc(all);
+  for(let i=4;i<14;i++) pw+=rc(U+L+N+S);
   pw=shuffle(pw);
   document.getElementById('password').value=pw;
   document.getElementById('confirm').value=pw;
@@ -251,15 +155,14 @@ function checkStrength(){
   const pw=document.getElementById('password').value;
   const r={len:pw.length>=8,up:/[A-Z]/.test(pw),low:/[a-z]/.test(pw),num:/[0-9]/.test(pw),sym:/[!@#$%^&*]/.test(pw)};
   const score=Object.values(r).filter(Boolean).length;
-  const bars=['b1','b2','b3','b4'];
-  const cls=score<=2?'ok':score<=3?'ok':score===4?'good':'great';
-  bars.forEach((id,i)=>{
-    const el=document.getElementById(id);
-    el.className='pw-bar'+(i<score?' '+cls:'');
+  const cls=['','weak','ok','good','great','great'][score]||'great';
+  ['b1','b2','b3','b4'].forEach((id,i)=>{
+    document.getElementById(id).className='pw-bar'+(i<score?' '+cls:'');
   });
-  setInd('pi-len',r.len);setInd('pi-up',r.up);setInd('pi-low',r.low);setInd('pi-num',r.num);setInd('pi-sym',r.sym);
+  ['pi-len','pi-up','pi-low','pi-num','pi-sym'].forEach((id,i)=>{
+    document.getElementById(id).className='pw-ind'+(Object.values(r)[i]?' ok':'');
+  });
 }
-function setInd(id,ok){document.getElementById(id).className='pw-ind'+(ok?' ok':'');}
 
 function toggleEye(id,btn){
   const el=document.getElementById(id);
@@ -267,8 +170,12 @@ function toggleEye(id,btn){
   btn.textContent=el.type==='password'?'👁':'🙈';
 }
 function copyVal(id){
-  navigator.clipboard.writeText(document.getElementById(id).value)
-    .then(()=>{showMsg('msg','Логин скопирован!','info');setTimeout(()=>document.getElementById('msg').classList.remove('show'),2000);});
+  const v=document.getElementById(id).value;
+  if(!v){showMsg('msg','Сначала введите ФИО для генерации логина','error');return;}
+  navigator.clipboard.writeText(v).then(()=>{
+    showMsg('msg','Логин скопирован: '+v,'info');
+    setTimeout(()=>document.getElementById('msg').classList.remove('show'),3000);
+  });
 }
 function showMsg(id,txt,type){const el=document.getElementById(id);el.textContent=txt;el.className='msg msg-'+type+' show';}
 function setLoading(on){
@@ -284,7 +191,8 @@ async function doRegister(){
   const pw=document.getElementById('password').value;
   const confirm=document.getElementById('confirm').value;
 
-  if(!fullname||!username||!pw||!confirm){showMsg('msg','Заполните все обязательные поля','error');return;}
+  if(!fullname||!username){showMsg('msg','Введите ФИО для генерации логина','error');return;}
+  if(!pw){showMsg('msg','Введите пароль','error');return;}
   if(pw!==confirm){showMsg('msg','Пароли не совпадают','error');return;}
   if(pw.length<8){showMsg('msg','Пароль должен быть минимум 8 символов','error');return;}
 
@@ -292,23 +200,30 @@ async function doRegister(){
   const email=username+'@turan.kz';
 
   const {data,error}=await sb.auth.signUp({
-    email,password:pw,
-    options:{data:{full_name:fullname,username,role:'teacher',department:dept}}
+    email, password:pw,
+    options:{data:{full_name:fullname, username, role:'teacher', department:dept}}
   });
 
-  if(error){setLoading(false);showMsg('msg','Ошибка: '+error.message,'error');return;}
+  if(error){
+    setLoading(false);
+    let m=error.message;
+    if(m.includes('already registered')||m.includes('User already')) m='Этот логин уже занят. Попробуйте другое имя.';
+    showMsg('msg','Ошибка: '+m,'error');
+    return;
+  }
 
-  // Log event
+  // Профиль создаётся через trigger в Supabase автоматически
+  // Дополнительно логируем регистрацию
   if(data.user){
-    await sb.from('audit_logs').insert({
-      user_id:data.user.id,username,
-      event_type:'register',description:'Регистрация нового пользователя',status:'success'
+    await sbAdmin.from('audit_logs').insert({
+      user_id:data.user.id, username,
+      event_type:'register', description:'Регистрация нового пользователя', status:'success'
     }).catch(()=>{});
   }
 
   setLoading(false);
-  showMsg('msg','✅ Регистрация успешна! Перенаправляем на вход...','success');
-  setTimeout(()=>location.href='login.html',2000);
+  showMsg('msg','✅ Регистрация успешна! Переходим на страницу входа...','success');
+  setTimeout(()=>location.href='login.html', 2000);
 }
 
 document.getElementById('fullname').focus();
