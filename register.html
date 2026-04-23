@@ -54,11 +54,12 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
 .pw-inds{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
 .pw-ind{padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;background:rgba(15,23,42,.8);color:rgba(100,116,139,.6);border:1px solid rgba(59,130,246,.10);transition:all .25s;}
 .pw-ind.ok{background:rgba(59,130,246,.12);color:#93c5fd;border-color:rgba(59,130,246,.25);}
-.msg{padding:11px 14px;border-radius:8px;font-size:.83rem;margin-bottom:16px;display:none;border-left:3px solid;}
+.msg{padding:11px 14px;border-radius:8px;font-size:.83rem;margin-bottom:16px;display:none;border-left:3px solid;line-height:1.6;}
 .msg.show{display:block;}
 .msg-error{background:rgba(239,68,68,.08);color:#fca5a5;border-color:#ef4444;}
 .msg-success{background:rgba(34,197,94,.08);color:#86efac;border-color:#22c55e;}
 .msg-info{background:rgba(59,130,246,.08);color:#93c5fd;border-color:#3b82f6;}
+.msg-warn{background:rgba(234,179,8,.08);color:#fde047;border-color:#eab308;}
 .btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .25s;}
 .btn-primary{background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);color:#fff;box-shadow:0 4px 20px rgba(59,130,246,.28);margin-bottom:10px;}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(59,130,246,.42);}
@@ -137,7 +138,6 @@ function genUsername(fio){
 }
 function onFio(){document.getElementById('username').value=genUsername(document.getElementById('fullname').value);}
 
-// Генерация пароля
 function rc(s){const a=new Uint32Array(1);crypto.getRandomValues(a);return s[a[0]%s.length];}
 function shuffle(s){const a=[...s];for(let i=a.length-1;i>0;i--){const r=new Uint32Array(1);crypto.getRandomValues(r);const j=r[0]%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a.join('');}
 function genPw(){
@@ -156,12 +156,8 @@ function checkStrength(){
   const r={len:pw.length>=8,up:/[A-Z]/.test(pw),low:/[a-z]/.test(pw),num:/[0-9]/.test(pw),sym:/[!@#$%^&*]/.test(pw)};
   const score=Object.values(r).filter(Boolean).length;
   const cls=['','weak','ok','good','great','great'][score]||'great';
-  ['b1','b2','b3','b4'].forEach((id,i)=>{
-    document.getElementById(id).className='pw-bar'+(i<score?' '+cls:'');
-  });
-  ['pi-len','pi-up','pi-low','pi-num','pi-sym'].forEach((id,i)=>{
-    document.getElementById(id).className='pw-ind'+(Object.values(r)[i]?' ok':'');
-  });
+  ['b1','b2','b3','b4'].forEach((id,i)=>document.getElementById(id).className='pw-bar'+(i<score?' '+cls:''));
+  ['pi-len','pi-up','pi-low','pi-num','pi-sym'].forEach((id,i)=>document.getElementById(id).className='pw-ind'+(Object.values(r)[i]?' ok':''));
 }
 
 function toggleEye(id,btn){
@@ -171,13 +167,17 @@ function toggleEye(id,btn){
 }
 function copyVal(id){
   const v=document.getElementById(id).value;
-  if(!v){showMsg('msg','Сначала введите ФИО для генерации логина','error');return;}
+  if(!v){showMsg('Сначала введите ФИО для генерации логина','error');return;}
   navigator.clipboard.writeText(v).then(()=>{
-    showMsg('msg','Логин скопирован: '+v,'info');
+    showMsg('Логин скопирован: '+v,'info');
     setTimeout(()=>document.getElementById('msg').classList.remove('show'),3000);
   });
 }
-function showMsg(id,txt,type){const el=document.getElementById(id);el.textContent=txt;el.className='msg msg-'+type+' show';}
+function showMsg(txt,type){
+  const el=document.getElementById('msg');
+  el.innerHTML=txt;
+  el.className='msg msg-'+type+' show';
+}
 function setLoading(on){
   const btn=document.getElementById('reg-btn');
   btn.disabled=on;
@@ -191,39 +191,106 @@ async function doRegister(){
   const pw=document.getElementById('password').value;
   const confirm=document.getElementById('confirm').value;
 
-  if(!fullname||!username){showMsg('msg','Введите ФИО для генерации логина','error');return;}
-  if(!pw){showMsg('msg','Введите пароль','error');return;}
-  if(pw!==confirm){showMsg('msg','Пароли не совпадают','error');return;}
-  if(pw.length<8){showMsg('msg','Пароль должен быть минимум 8 символов','error');return;}
+  if(!fullname||!username){showMsg('Введите ФИО для генерации логина','error');return;}
+  if(!pw){showMsg('Введите пароль','error');return;}
+  if(pw!==confirm){showMsg('Пароли не совпадают','error');return;}
+  if(pw.length<8){showMsg('Пароль должен быть минимум 8 символов','error');return;}
 
   setLoading(true);
-  const email=username+'@turan.kz';
 
-  const {data,error}=await sb.auth.signUp({
-    email, password:pw,
-    options:{data:{full_name:fullname, username, role:'teacher', department:dept}}
-  });
+  const email = username + '@turan.kz';
 
-  if(error){
+  let data, error;
+  try {
+    const result = await sb.auth.signUp({
+      email,
+      password: pw,
+      options: {
+        data: {
+          full_name: fullname,
+          username: username,
+          role: 'teacher',
+          department: dept
+        }
+      }
+    });
+    data = result.data;
+    error = result.error;
+  } catch(e) {
     setLoading(false);
-    let m=error.message;
-    if(m.includes('already registered')||m.includes('User already')) m='Этот логин уже занят. Попробуйте другое имя.';
-    showMsg('msg','Ошибка: '+m,'error');
+    showMsg('❌ Ошибка сети: ' + e.message, 'error');
     return;
   }
 
-  // Профиль создаётся через trigger в Supabase автоматически
-  // Дополнительно логируем регистрацию
-  if(data.user){
-    await sbAdmin.from('audit_logs').insert({
-      user_id:data.user.id, username,
-      event_type:'register', description:'Регистрация нового пользователя', status:'success'
-    }).catch(()=>{});
+  setLoading(false);
+
+  if(error){
+    let m = error.message || 'Неизвестная ошибка';
+    console.error('[register] Supabase error:', error);
+
+    if(m.includes('already registered') || m.includes('User already') || m.includes('already been registered')){
+      m = 'Этот логин уже занят. Попробуйте другое имя.';
+    } else if(m.includes('rate limit') || m.includes('email rate') || m.includes('over_email_send_rate_limit')){
+      m = '⚠️ Превышен лимит email-подтверждений.<br><br>' +
+          '<b>Что сделать:</b><br>' +
+          '1. Открой <b>Supabase Dashboard</b><br>' +
+          '2. Перейди в <b>Authentication → Providers → Email</b><br>' +
+          '3. Выключи <b>"Confirm email"</b> (Toggle → OFF)<br>' +
+          '4. Нажми <b>Save</b> и попробуй снова.';
+      showMsg(m, 'warn');
+      return;
+    } else if(m.includes('Password should') || m.includes('weak password')){
+      m = 'Пароль слишком простой. Добавь заглавные буквы, цифры и символы (!@#).';
+    } else if(m.includes('Unable to validate') || m.includes('invalid')){
+      m = 'Ошибка валидации. Проверьте корректность данных.';
+    }
+    showMsg('❌ ' + m, 'error');
+    return;
   }
 
-  setLoading(false);
-  showMsg('msg','✅ Регистрация успешна! Переходим на страницу входа...','success');
-  setTimeout(()=>location.href='login.html', 2000);
+  // --- Анализируем ответ Supabase ---
+
+  // Случай 1: сессия есть → "Confirm email" выключен → пользователь сразу залогинен
+  if(data?.session){
+    await sb.from('audit_logs').insert({
+      user_id: data.user.id,
+      username,
+      event_type: 'register',
+      description: 'Регистрация нового пользователя',
+      status: 'success'
+    }).catch(()=>{});
+
+    showMsg('✅ Регистрация успешна! Переходим...', 'success');
+    setTimeout(()=>location.href='dashboard.html', 1200);
+    return;
+  }
+
+  // Случай 2: user есть, сессии нет — "Confirm email" включён ИЛИ пользователь уже существует
+  // Supabase не раскрывает разницу между "уже зарегистрирован" и "ждёт подтверждения"
+  // по соображениям безопасности (anti-enumeration). Мы это учитываем.
+  if(data?.user){
+    const identities = data.user.identities || [];
+
+    if(identities.length === 0){
+      // Пользователь с таким email уже зарегистрирован
+      showMsg('Этот логин уже занят. Выберите другое имя.', 'error');
+      return;
+    }
+
+    // Новый пользователь, ждёт подтверждения email
+    showMsg(
+      '📧 Аккаунт создан, но требует подтверждения email.<br><br>' +
+      '<b>Чтобы войти без подтверждения:</b><br>' +
+      '→ Supabase → Authentication → Providers → Email<br>' +
+      '→ Выключи <b>"Confirm email"</b> → Save<br><br>' +
+      'Либо подтверди email и затем войди.',
+      'warn'
+    );
+    return;
+  }
+
+  // Случай 3: ни user, ни error — непредвиденный ответ
+  showMsg('Неожиданный ответ от сервера. Попробуйте ещё раз.', 'error');
 }
 
 document.getElementById('fullname').focus();

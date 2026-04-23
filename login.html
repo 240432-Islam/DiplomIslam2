@@ -53,7 +53,7 @@ body{font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;backgroun
 }
 .eye:hover{color:#60a5fa;}
 
-.msg{padding:11px 14px;border-radius:8px;font-size:.83rem;margin-bottom:18px;display:none;border-left:3px solid;}
+.msg{padding:11px 14px;border-radius:8px;font-size:.83rem;margin-bottom:18px;display:none;border-left:3px solid;line-height:1.5;}
 .msg.show{display:block;}
 .msg-error{background:rgba(239,68,68,.08);color:#fca5a5;border-color:#ef4444;}
 .msg-success{background:rgba(34,197,94,.08);color:#86efac;border-color:#22c55e;}
@@ -130,15 +130,15 @@ body{font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;backgroun
     <div class="overlay-sub">Введите 6-значный код из приложения аутентификатора</div>
     <div id="msg-2fa" class="msg" style="text-align:left"></div>
     <div class="otp-row">
-      <input class="otp-d" maxlength="1" oninput="otpNext(this,0)">
-      <input class="otp-d" maxlength="1" oninput="otpNext(this,1)">
-      <input class="otp-d" maxlength="1" oninput="otpNext(this,2)">
-      <input class="otp-d" maxlength="1" oninput="otpNext(this,3)">
-      <input class="otp-d" maxlength="1" oninput="otpNext(this,4)">
-      <input class="otp-d" maxlength="1" oninput="otpNext(this,5)">
+      <input class="otp-d" maxlength="1" oninput="otpNext(this,0)" onkeydown="otpBack(event,this,0)">
+      <input class="otp-d" maxlength="1" oninput="otpNext(this,1)" onkeydown="otpBack(event,this,1)">
+      <input class="otp-d" maxlength="1" oninput="otpNext(this,2)" onkeydown="otpBack(event,this,2)">
+      <input class="otp-d" maxlength="1" oninput="otpNext(this,3)" onkeydown="otpBack(event,this,3)">
+      <input class="otp-d" maxlength="1" oninput="otpNext(this,4)" onkeydown="otpBack(event,this,4)">
+      <input class="otp-d" maxlength="1" oninput="otpNext(this,5)" onkeydown="otpBack(event,this,5)">
     </div>
     <button class="btn btn-primary" onclick="verify2fa()" style="margin-bottom:10px">Подтвердить</button>
-    <button class="btn btn-ghost" onclick="document.getElementById('overlay-2fa').classList.remove('show')">Отмена</button>
+    <button class="btn btn-ghost" onclick="cancel2fa()">Отмена</button>
   </div>
 </div>
 
@@ -146,48 +146,69 @@ body{font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;backgroun
 let _pending2fa = null;
 
 function toggleEye(id, btn){
-  const el=document.getElementById(id);
-  el.type=el.type==='password'?'text':'password';
-  btn.textContent=el.type==='password'?'👁':'🙈';
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+  btn.textContent = el.type === 'password' ? '👁' : '🙈';
 }
+
 function showMsg(id, text, type){
-  const el=document.getElementById(id);
-  el.innerHTML=text; el.className='msg msg-'+type+' show';
+  const el = document.getElementById(id);
+  el.innerHTML = text;
+  el.className = 'msg msg-' + type + ' show';
 }
+
 function setLoading(on){
-  const btn=document.getElementById('login-btn');
-  btn.disabled=on;
-  btn.innerHTML=on?'<span class="spin"></span>Вход...':'Войти';
+  const btn = document.getElementById('login-btn');
+  btn.disabled = on;
+  btn.innerHTML = on ? '<span class="spin"></span>Вход...' : 'Войти';
 }
 
 async function doLogin(){
-  const username=document.getElementById('username').value.trim();
-  const password=document.getElementById('password').value;
-  if(!username||!password){showMsg('msg','Заполните все поля','error');return;}
-  setLoading(true);
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
 
-  const email=username+'@turan.kz';
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
-
-  if(error){
-    setLoading(false);
-    let m='Неверный логин или пароль';
-    if(error.message?.includes('Email not confirmed'))
-      m='⚠️ Email не подтверждён. Supabase → Authentication → Providers → Email → выключи "Confirm email"';
-    else if(error.status===500)
-      m='⚠️ Ошибка сервера (500). Убедитесь что пользователь создан через Authentication → Users в Supabase Dashboard, а не через SQL INSERT.';
-    showMsg('msg',m,'error');
+  if(!username || !password){
+    showMsg('msg', 'Заполните все поля', 'error');
     return;
   }
 
-  // Проверка 2FA
-  const {data:{factors}}=await sb.auth.mfa.listFactors();
-  const totp=factors?.totp?.find(f=>f.status==='verified');
+  setLoading(true);
+  const email = username + '@turan.kz';
+
+  const {data, error} = await sb.auth.signInWithPassword({email, password});
+
+  if(error){
+    setLoading(false);
+    let m = 'Неверный логин или пароль';
+    if(error.message?.includes('Email not confirmed')){
+      m = '⚠️ Email не подтверждён.<br>Зайди в <b>Supabase → Authentication → Providers → Email</b> и выключи <b>"Confirm email"</b>. Затем попробуй снова.';
+    } else if(error.message?.includes('Invalid login credentials')){
+      m = 'Неверный логин или пароль. Проверьте данные.';
+    } else if(error.status === 500){
+      m = '⚠️ Ошибка сервера (500). Убедись что пользователь создан через форму регистрации.';
+    } else if(error.message?.includes('too many requests')){
+      m = '⚠️ Слишком много попыток. Подождите несколько минут.';
+    }
+    showMsg('msg', m, 'error');
+    return;
+  }
+
+  // Проверяем 2FA
+  let factors = [];
+  try {
+    const {data: mfaData} = await sb.auth.mfa.listFactors();
+    factors = mfaData?.totp || [];
+  } catch(e) {
+    // MFA недоступна — продолжаем без неё
+  }
+
+  const totp = factors.find(f => f.status === 'verified');
   if(totp){
-    _pending2fa={factorId:totp.id, user:data.user, username};
+    _pending2fa = {factorId: totp.id, user: data.user, username};
     setLoading(false);
     document.getElementById('overlay-2fa').classList.add('show');
-    document.querySelector('.otp-d').focus();
+    document.querySelectorAll('.otp-d').forEach(el => el.value = '');
+    document.querySelectorAll('.otp-d')[0].focus();
     return;
   }
 
@@ -196,59 +217,87 @@ async function doLogin(){
 
 async function verify2fa(){
   if(!_pending2fa) return;
-  const code=[...document.querySelectorAll('.otp-d')].map(i=>i.value).join('');
-  if(code.length!==6){showMsg('msg-2fa','Введите все 6 цифр','error');return;}
-  const {data:ch,error:ce}=await sb.auth.mfa.challenge({factorId:_pending2fa.factorId});
-  if(ce){showMsg('msg-2fa','Ошибка: '+ce.message,'error');return;}
-  const {error}=await sb.auth.mfa.verify({factorId:_pending2fa.factorId,challengeId:ch.id,code});
-  if(error){showMsg('msg-2fa','Неверный код. Попробуйте ещё раз.','error');return;}
-  await afterLogin(_pending2fa.user, _pending2fa.username);
-  _pending2fa=null;
+
+  const digits = document.querySelectorAll('.otp-d');
+  const code = [...digits].map(i => i.value).join('');
+
+  if(code.length !== 6){
+    showMsg('msg-2fa', 'Введите все 6 цифр', 'error');
+    return;
+  }
+
+  try {
+    const {data: ch, error: ce} = await sb.auth.mfa.challenge({factorId: _pending2fa.factorId});
+    if(ce){showMsg('msg-2fa', 'Ошибка: ' + ce.message, 'error'); return;}
+
+    const {error} = await sb.auth.mfa.verify({
+      factorId: _pending2fa.factorId,
+      challengeId: ch.id,
+      code
+    });
+
+    if(error){showMsg('msg-2fa', 'Неверный код. Попробуйте ещё раз.', 'error'); return;}
+
+    const saved = _pending2fa;
+    _pending2fa = null;
+    await afterLogin(saved.user, saved.username);
+  } catch(e) {
+    showMsg('msg-2fa', 'Ошибка проверки кода: ' + e.message, 'error');
+  }
+}
+
+function cancel2fa(){
+  _pending2fa = null;
+  document.getElementById('overlay-2fa').classList.remove('show');
+  // Выходим из частично аутентифицированной сессии
+  sb.auth.signOut().catch(()=>{});
 }
 
 async function afterLogin(user, username){
-  // Убеждаемся что профиль существует (используем sbAdmin чтобы обойти RLS)
-  const {data:existing}=await sbAdmin
-    .from('profiles').select('id').eq('id',user.id).maybeSingle();
-
-  if(!existing){
-    const meta=user.user_metadata||{};
-    await sbAdmin.from('profiles').insert({
-      id:user.id,
-      full_name:meta.full_name||username,
-      username:meta.username||username,
-      role:meta.role||'teacher',
-      department:meta.department||'',
-      is_active:true
-    });
-  }
-
-  // Обновляем last_login
-  await sbAdmin.from('profiles').update({last_login:new Date().toISOString()}).eq('id',user.id);
+  // Обновляем last_login (через RLS — пользователь может обновлять свой профиль)
+  await sb.from('profiles')
+    .update({last_login: new Date().toISOString()})
+    .eq('id', user.id)
+    .catch(()=>{});
 
   // Записываем в журнал
-  await sbAdmin.from('audit_logs').insert({
-    user_id:user.id, username,
-    event_type:'login', description:'Успешный вход', status:'success'
+  await sb.from('audit_logs').insert({
+    user_id: user.id,
+    username,
+    event_type: 'login',
+    description: 'Успешный вход',
+    status: 'success'
   }).catch(()=>{});
 
-  // Переходим на дашборд
-  location.href='dashboard.html';
+  location.href = 'dashboard.html';
 }
 
-function otpNext(el,idx){
-  const digits=document.querySelectorAll('.otp-d');
-  if(el.value&&idx<5) digits[idx+1].focus();
-  if(idx===5){
-    const code=[...digits].map(i=>i.value).join('');
-    if(code.length===6) verify2fa();
+// OTP навигация — вперёд
+function otpNext(el, idx){
+  const digits = document.querySelectorAll('.otp-d');
+  // Оставляем только цифры
+  el.value = el.value.replace(/\D/g, '');
+  if(el.value && idx < 5){
+    digits[idx + 1].focus();
+  }
+  // Автоподтверждение когда все цифры введены
+  if(idx === 5){
+    const code = [...digits].map(i => i.value).join('');
+    if(code.length === 6) verify2fa();
+  }
+}
+
+// OTP навигация — назад по Backspace
+function otpBack(event, el, idx){
+  if(event.key === 'Backspace' && !el.value && idx > 0){
+    document.querySelectorAll('.otp-d')[idx - 1].focus();
   }
 }
 
 // Если уже залогинен — сразу на дашборд
 (async()=>{
-  const {data:{session}}=await sb.auth.getSession();
-  if(session) location.href='dashboard.html';
+  const {data: {session}} = await sb.auth.getSession();
+  if(session) location.href = 'dashboard.html';
   else document.getElementById('username').focus();
 })();
 </script>
