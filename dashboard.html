@@ -1708,45 +1708,53 @@ document.querySelectorAll('.modal-overlay').forEach(overlay=>{
 async function init(){
   initPolicyInputs();
 
-  // Check session — sb uses storageKey 'turan-auth' set in supabase-shared.js
   const {data:{session}} = await sb.auth.getSession();
   if(!session){
-    console.warn('No session found, redirecting to login');
     location.href='login.html';
     return;
   }
 
   currentUser = session.user;
 
-  // Load profile via sbAdmin (bypasses RLS — works always)
+  // Пробуем загрузить профиль (пользователь читает свой собственный через RLS)
   let p = null;
-  const {data:profileData, error:profileErr} = await sbAdmin
+  const {data:profileData, error:profileErr} = await sb
     .from('profiles').select('*').eq('id', session.user.id).maybeSingle();
 
-  if(profileErr) console.error('Profile fetch error:', profileErr);
+  if(profileErr) console.warn('Profile fetch error:', profileErr?.message);
   p = profileData;
 
-  // If profile missing — auto-create from auth metadata
+  // Если профиля нет — создаём из метаданных auth
   if(!p){
     const meta = session.user.user_metadata || {};
     const username = meta.username || session.user.email?.split('@')[0] || 'user';
-    const {data:newProfile, error:createErr} = await sbAdmin.from('profiles').insert({
+    const insertPayload = {
       id: session.user.id,
       full_name: meta.full_name || username,
       username,
       role: meta.role || 'teacher',
       department: meta.department || '',
       is_active: true
-    }).select().single();
-    if(createErr) console.error('Profile create error:', createErr);
-    p = newProfile;
+    };
+    const {data:created, error:createErr} = await sb
+      .from('profiles').insert(insertPayload).select().single();
+    if(createErr) console.warn('Profile insert error:', createErr?.message);
+    p = created;
   }
 
+  // Если всё равно нет — создаём минимальный профиль из сессии
   if(!p){
-    console.error('Could not load or create profile');
-    alert('Ошибка загрузки профиля. Обратитесь к администратору.');
-    location.href='login.html';
-    return;
+    const meta = session.user.user_metadata || {};
+    const username = meta.username || session.user.email?.split('@')[0] || 'user';
+    p = {
+      id: session.user.id,
+      full_name: meta.full_name || username,
+      username,
+      role: meta.role || 'teacher',
+      department: meta.department || '',
+      is_active: true,
+      created_at: new Date().toISOString()
+    };
   }
 
   currentProfile = p;

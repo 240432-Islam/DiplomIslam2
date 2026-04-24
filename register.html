@@ -252,6 +252,17 @@ async function doRegister(){
 
   // Случай 1: сессия есть → "Confirm email" выключен → пользователь сразу залогинен
   if(data?.session){
+    // Создаём профиль сразу если триггер ещё не сработал
+    const meta = data.user.user_metadata || {};
+    await sb.from('profiles').upsert({
+      id: data.user.id,
+      full_name: meta.full_name || username,
+      username: meta.username || username,
+      role: meta.role || 'teacher',
+      department: meta.department || '',
+      is_active: true
+    }, {onConflict: 'id'}).catch(()=>{});
+
     await sb.from('audit_logs').insert({
       user_id: data.user.id,
       username,
@@ -261,7 +272,8 @@ async function doRegister(){
     }).catch(()=>{});
 
     showMsg('✅ Регистрация успешна! Переходим...', 'success');
-    setTimeout(()=>location.href='dashboard.html', 1200);
+    // Небольшая задержка чтобы триггер в Supabase успел создать профиль
+    setTimeout(()=>location.href='dashboard.html', 800);
     return;
   }
 
