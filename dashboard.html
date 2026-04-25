@@ -533,7 +533,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="s-users">—</div><div class="stat-label" id="s-users-label">Пользователей</div></div>
         <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-val" id="s-active">—</div><div class="stat-label" id="s-active-label">Активных</div></div>
-        <div class="stat-card"><div class="stat-icon">🔒</div><div class="stat-val" id="s-2fa">—</div><div class="stat-label" id="s-2fa-label">С 2FA</div></div>
+        <div class="stat-card"><div class="stat-icon">🔒</div><div class="stat-val" id="s-2fa">—</div><div class="stat-label">С 2FA</div></div>
         <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-val" id="s-events">—</div><div class="stat-label" id="s-events-label">Событий сегодня</div></div>
       </div>
       <div class="card">
@@ -590,6 +590,36 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
           </div>
         </div>
         <button class="btn btn-gold" onclick="doChangePassword()">Сменить пароль</button>
+      </div>
+      <div class="card" style="max-width:600px">
+        <div class="card-title">🔐 Двухфакторная аутентификация (2FA)</div>
+        <div id="twofa-msg" class="msg"></div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;">
+          <div style="font-weight:600;color:var(--text);margin-bottom:8px;">📱 Как подключить:</div>
+          <ol style="color:var(--text2);font-size:.85rem;line-height:1.8;margin-left:20px;">
+            <li>Скачайте <strong>Google Authenticator</strong> на телефон</li>
+            <li>Нажмите "Включить 2FA" ниже</li>
+            <li>Отсканируйте QR-код в приложении</li>
+            <li>Введите 6-значный код из приложения</li>
+            <li>Готово! При входе потребуется код с телефона</li>
+          </ol>
+        </div>
+        <div id="twofa-status" style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);">
+            <span style="font-size:1.5rem;" id="twofa-icon">🔓</span>
+            <div style="flex:1;">
+              <div style="font-weight:600;color:var(--text);" id="twofa-status-text">2FA отключён</div>
+              <div style="font-size:.78rem;color:var(--text3);margin-top:2px;" id="twofa-status-desc">Ваш аккаунт защищён только паролем</div>
+            </div>
+            <span class="badge" id="twofa-badge">Отключён</span>
+          </div>
+        </div>
+        <button class="btn btn-gold" id="twofa-enable-btn" onclick="setup2FA()" style="display:none;">
+          🔒 Включить 2FA
+        </button>
+        <button class="btn btn-danger" id="twofa-disable-btn" onclick="disable2FA()" style="display:none;">
+          🔓 Отключить 2FA
+        </button>
       </div>
     </div>
 
@@ -848,24 +878,42 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <!-- 2FA Setup Modal -->
 <div class="modal-overlay" id="modal-2fa-setup">
   <div class="modal">
-    <div class="modal-title">🔐 Настройка 2FA</div>
+    <div class="modal-title">🔐 Настройка двухфакторной аутентификации</div>
     <div id="twofa-setup-msg" class="msg"></div>
-    <p style="color:var(--text2);font-size:.88rem;margin-bottom:16px;">Отсканируйте QR в Google Authenticator или Yandex.Key</p>
-    <div style="background:white;border-radius:10px;padding:20px;display:flex;justify-content:center;margin-bottom:16px;">
+    
+    <div style="background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+      <div style="font-weight:600;color:var(--accent);margin-bottom:8px;">📱 Инструкция:</div>
+      <ol style="color:var(--text2);font-size:.82rem;line-height:1.7;margin-left:18px;">
+        <li>Откройте <strong>Google Authenticator</strong> на телефоне</li>
+        <li>Нажмите <strong>"+"</strong> → <strong>"Сканировать QR-код"</strong></li>
+        <li>Наведите камеру на QR-код ниже</li>
+        <li>Введите 6-значный код из приложения</li>
+      </ol>
+    </div>
+    
+    <div style="background:white;border-radius:var(--radius);padding:20px;display:flex;justify-content:center;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
       <canvas id="qr-canvas"></canvas>
     </div>
-    <p style="color:var(--text3);font-size:.78rem;text-align:center;margin-bottom:16px;">Секрет: <span id="totp-secret-display" style="color:var(--accent);font-family:monospace;"></span></p>
-    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px;" id="setup-otp-row">
-      <input class="otp-digit" maxlength="1" oninput="otpMove(this,1)">
-      <input class="otp-digit" maxlength="1" oninput="otpMove(this,2)">
-      <input class="otp-digit" maxlength="1" oninput="otpMove(this,3)">
-      <input class="otp-digit" maxlength="1" oninput="otpMove(this,4)">
-      <input class="otp-digit" maxlength="1" oninput="otpMove(this,5)">
-      <input class="otp-digit" maxlength="1" oninput="otpMove(this,6)">
+    
+    <p style="color:var(--text3);font-size:.75rem;text-align:center;margin-bottom:16px;">
+      Или введите код вручную: <span id="totp-secret-display" style="color:var(--accent);font-family:monospace;font-weight:600;"></span>
+    </p>
+    
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:.82rem;font-weight:600;color:var(--text2);margin-bottom:8px;text-align:center;">Введите код из приложения:</label>
+      <div style="display:flex;gap:8px;justify-content:center;" id="setup-otp-row">
+        <input class="otp-digit" maxlength="1" oninput="otpMove(this,1)">
+        <input class="otp-digit" maxlength="1" oninput="otpMove(this,2)">
+        <input class="otp-digit" maxlength="1" oninput="otpMove(this,3)">
+        <input class="otp-digit" maxlength="1" oninput="otpMove(this,4)">
+        <input class="otp-digit" maxlength="1" oninput="otpMove(this,5)">
+        <input class="otp-digit" maxlength="1" oninput="otpMove(this,6)">
+      </div>
     </div>
+    
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-2fa-setup')">Пропустить</button>
-      <button class="btn btn-gold" onclick="verify2faSetup()">Активировать</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-2fa-setup')">Отмена</button>
+      <button class="btn btn-gold" onclick="verify2faSetup()">✅ Активировать 2FA</button>
     </div>
   </div>
 </div>
@@ -1331,6 +1379,141 @@ function loadProfile(){
       <td style="padding:12px 0;color:var(--text);font-size:.9rem">${v}</td>
     </tr>
   `).join('');
+  
+  // Загружаем статус 2FA
+  load2FAStatus();
+}
+
+async function load2FAStatus(){
+  try {
+    const {data:{factors}} = await sb.auth.mfa.listFactors();
+    const totp = factors?.totp?.find(f=>f.status==='verified');
+    
+    if(totp){
+      // 2FA включён
+      document.getElementById('twofa-icon').textContent = '🔒';
+      document.getElementById('twofa-status-text').textContent = '2FA включён';
+      document.getElementById('twofa-status-desc').textContent = 'Ваш аккаунт защищён двухфакторной аутентификацией';
+      document.getElementById('twofa-badge').textContent = 'Включён';
+      document.getElementById('twofa-badge').className = 'badge badge-success';
+      document.getElementById('twofa-enable-btn').style.display = 'none';
+      document.getElementById('twofa-disable-btn').style.display = 'inline-block';
+      
+      // Обновляем в базе если нужно
+      if(!currentProfile.mfa_enabled){
+        await sb.from('profiles').update({mfa_enabled:true}).eq('id',currentUser.id);
+        currentProfile.mfa_enabled = true;
+      }
+    } else {
+      // 2FA отключён
+      document.getElementById('twofa-icon').textContent = '🔓';
+      document.getElementById('twofa-status-text').textContent = '2FA отключён';
+      document.getElementById('twofa-status-desc').textContent = 'Ваш аккаунт защищён только паролем';
+      document.getElementById('twofa-badge').textContent = 'Отключён';
+      document.getElementById('twofa-badge').className = 'badge badge-warning';
+      document.getElementById('twofa-enable-btn').style.display = 'inline-block';
+      document.getElementById('twofa-disable-btn').style.display = 'none';
+      
+      // Обновляем в базе если нужно
+      if(currentProfile.mfa_enabled){
+        await sb.from('profiles').update({mfa_enabled:false}).eq('id',currentUser.id);
+        currentProfile.mfa_enabled = false;
+      }
+    }
+  } catch(e){
+    console.warn('2FA status check failed:', e);
+  }
+}
+
+async function setup2FA(){
+  try {
+    // Enroll new TOTP factor
+    const {data, error} = await sb.auth.mfa.enroll({
+      factorType: 'totp',
+      friendlyName: currentProfile.username
+    });
+    
+    if(error) throw error;
+    
+    // Показываем QR код
+    document.getElementById('totp-secret-display').textContent = data.totp.secret;
+    
+    // Генерируем QR
+    const qrData = data.totp.qr_code; // URI формат
+    const canvas = document.getElementById('qr-canvas');
+    QRCode.toCanvas(canvas, qrData, {width: 200, margin: 2}, (err) => {
+      if(err) console.error('QR generation failed:', err);
+    });
+    
+    // Сохраняем factorId для верификации
+    window._2faFactorId = data.id;
+    
+    // Открываем модалку
+    document.getElementById('modal-2fa-setup').classList.add('open');
+    document.querySelectorAll('#setup-otp-row .otp-digit').forEach(el => el.value = '');
+    document.querySelectorAll('#setup-otp-row .otp-digit')[0].focus();
+    
+  } catch(e){
+    showMsg('twofa-msg', 'Ошибка настройки 2FA: ' + e.message, 'error');
+  }
+}
+
+async function verify2faSetup(){
+  const digits = document.querySelectorAll('#setup-otp-row .otp-digit');
+  const code = [...digits].map(i=>i.value).join('');
+  
+  if(code.length !== 6){
+    showMsg('twofa-setup-msg', 'Введите все 6 цифр', 'error');
+    return;
+  }
+  
+  try {
+    const {data:challenge} = await sb.auth.mfa.challenge({factorId: window._2faFactorId});
+    const {error} = await sb.auth.mfa.verify({
+      factorId: window._2faFactorId,
+      challengeId: challenge.id,
+      code
+    });
+    
+    if(error) throw error;
+    
+    // Обновляем статус в базе
+    await sb.from('profiles').update({mfa_enabled:true}).eq('id',currentUser.id);
+    currentProfile.mfa_enabled = true;
+    
+    // Логируем событие
+    await logEvent(currentUser.id, currentProfile.username, '2fa_enabled', '2FA успешно активирован', 'success');
+    
+    closeModal('modal-2fa-setup');
+    showMsg('twofa-msg', '✅ 2FA успешно активирован!', 'success');
+    load2FAStatus();
+    
+  } catch(e){
+    showMsg('twofa-setup-msg', 'Неверный код. Попробуйте ещё раз.', 'error');
+  }
+}
+
+async function disable2FA(){
+  if(!confirm('Вы уверены, что хотите отключить двухфакторную аутентификацию?')) return;
+  
+  try {
+    const {data:{factors}} = await sb.auth.mfa.listFactors();
+    const totp = factors?.totp?.find(f=>f.status==='verified');
+    
+    if(totp){
+      const {error} = await sb.auth.mfa.unenroll({factorId: totp.id});
+      if(error) throw error;
+      
+      // Обновляем в базе
+      await sb.from('profiles').update({mfa_enabled:false}).eq('id',currentUser.id);
+      currentProfile.mfa_enabled = false;
+      
+      showMsg('twofa-msg', '✅ 2FA отключён', 'success');
+      load2FAStatus();
+    }
+  } catch(e){
+    showMsg('twofa-msg', 'Ошибка отключения 2FA: ' + e.message, 'error');
+  }
 }
 
 async function doChangePassword(){
