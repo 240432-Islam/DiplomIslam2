@@ -1176,14 +1176,16 @@ function showApp(){
   document.getElementById('page-app').style.display='flex';
 
   // Sidebar user info
-  const name = currentProfile?.full_name || currentProfile?.username || '—';
-  const role = currentProfile?.role==='admin'?'Администратор':'Преподаватель';
+  const name = (currentProfile?.full_name && currentProfile.full_name !== currentProfile?.username)
+    ? currentProfile.full_name
+    : (currentProfile?.username || '—');
+  const isAdmin = currentProfile?.role === 'admin';
+  const roleLabel = isAdmin ? 'Администратор' : 'Преподаватель';
   document.getElementById('sb-name').textContent = name;
-  document.getElementById('sb-role').textContent = role;
+  document.getElementById('sb-role').textContent = roleLabel;
   document.getElementById('sb-avatar').textContent = name.charAt(0).toUpperCase();
 
-  // Admin-only visibility
-  const isAdmin = currentProfile?.role==='admin';
+  // Admin-only: показываем секции управления только admin
   document.querySelectorAll('.admin-only').forEach(el=>{
     el.style.display = isAdmin ? '' : 'none';
   });
