@@ -1718,41 +1718,49 @@ async function init(){
 
   currentUser = session.user;
   const meta = session.user.user_metadata || {};
-  const username = meta.username || session.user.email?.split('@')[0] || 'user';
+  const emailUsername = session.user.email?.split('@')[0] || 'user';
+  const username = meta.username || emailUsername;
 
-  // Пробуем прочитать профиль
-  let p = null;
-  const {data:profileData} = await sb
+  // Читаем профиль из базы данных
+  const {data:profileData, error:profileErr} = await sb
     .from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-  p = profileData;
 
-  // Профиля нет — создаём (триггер мог не сработать)
+  console.log('Profile from DB:', profileData, 'Error:', profileErr?.message);
+
+  let p = profileData;
+
+  // Профиля нет в БД — пробуем создать
   if(!p){
-    const {data:created} = await sb.from('profiles').insert({
+    console.warn('Profile not found in DB, creating...');
+    const {data:created, error:createErr} = await sb.from('profiles').insert({
       id: session.user.id,
       full_name: meta.full_name || username,
-      username: meta.username || username,
-      role: meta.role || 'teacher',
+      username,
+      role: 'teacher', // новые пользователи — всегда teacher
       department: meta.department || '',
       is_active: true
     }).select().maybeSingle();
+    console.log('Created profile:', created, 'Error:', createErr?.message);
     p = created;
   }
 
-  // Fallback — строим профиль из сессии чтобы не редиректить
+  // RLS не даёт читать — используем минимальный профиль
+  // НО: role берём ТОЛЬКО из БД, не из meta (meta.role ненадёжна)
   if(!p){
+    console.warn('Cannot read profile via RLS, using session fallback');
     p = {
       id: session.user.id,
-      full_name: meta.full_name || username,
-      username: meta.username || username,
-      role: meta.role || 'teacher',
-      department: meta.department || '',
+      full_name: username,
+      username,
+      role: 'teacher', // безопасный дефолт — не давать admin через fallback
+      department: '',
       is_active: true,
       created_at: new Date().toISOString()
     };
   }
 
   currentProfile = p;
+  console.log('Final profile:', currentProfile.username, currentProfile.role);
   await loadPolicy();
   showApp();
 }
