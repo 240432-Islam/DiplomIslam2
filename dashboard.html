@@ -6,8 +6,7 @@
 <title>TURAN — Панель управления</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" onerror="console.warn('qrcode CDN failed, using fallback')"></script>
+<!-- QRCode рисуется через api.qrserver.com — не нужна JS-библиотека -->
 <script src="supabase-shared.js"></script>
 <style>
 
@@ -1428,86 +1427,44 @@ async function load2FAStatus(){
 
 async function setup2FA(){
   try {
-    showMsg('twofa-msg', '⏳ Генерация QR-кода...', 'info');
+    showMsg('twofa-msg', '⏳ Подготовка...', 'info');
 
-    // Шаг 1: Удаляем все незавершённые (unverified) факторы с тем же именем,
-    // иначе Supabase вернёт ошибку "factor already exists"
+    // Удаляем все unverified факторы — иначе Supabase даёт "already exists"
     try {
-      const {data: existing} = await sb.auth.mfa.listFactors();
-      const allFactors = [
-        ...(existing?.totp || []),
-        ...(existing?.phone || [])
-      ];
-      for(const factor of allFactors){
-        if(factor.status !== 'verified'){
-          await sb.auth.mfa.unenroll({factorId: factor.id}).catch(()=>{});
-          console.log('🗑 Removed unverified factor:', factor.id);
+      const {data: ex} = await sb.auth.mfa.listFactors();
+      for(const f of [...(ex?.totp||[]), ...(ex?.phone||[])]){
+        if(f.status !== 'verified'){
+          await sb.auth.mfa.unenroll({factorId: f.id}).catch(()=>{});
         }
       }
-    } catch(e){
-      console.warn('Could not clean up old factors:', e);
-    }
+    } catch(e){ console.warn('cleanup:', e); }
 
-    // Шаг 2: Создаём новый TOTP фактор
+    showMsg('twofa-msg', '⏳ Генерация QR-кода...', 'info');
+
     const {data, error} = await sb.auth.mfa.enroll({
       factorType: 'totp',
       friendlyName: currentProfile.username
     });
-
     if(error) throw error;
 
-    // Шаг 3: Показываем секретный ключ
+    window._2faFactorId = data.id;
     document.getElementById('totp-secret-display').textContent = data.totp.secret;
 
-    // Шаг 4: Рисуем QR-код
-    const qrUri = data.totp.qr_code; // otpauth://totp/... URI
+    // Рисуем QR через img + api.qrserver.com (работает без JS-библиотек)
+    const qrUri = data.totp.qr_code;
     const canvas = document.getElementById('qr-canvas');
-    canvas.style.display = '';
+    canvas.style.display = 'none';
 
-    if(typeof QRCode !== 'undefined'){
-      // Проверяем какая именно библиотека загружена
-      // qrcode.js (npm) — имеет QRCode.toCanvas()
-      // qrcodejs — создаётся через new QRCode(element, options)
-      if(typeof QRCode.toCanvas === 'function'){
-        // npm qrcode library
-        await QRCode.toCanvas(canvas, qrUri, {
-          width: 200, margin: 2,
-          color: { dark: '#000000', light: '#FFFFFF' },
-          errorCorrectionLevel: 'M'
-        });
-      } else {
-        // qrcodejs library — рисует в div, не в canvas
-        canvas.style.display = 'none';
-        let qrDiv = document.getElementById('qr-div-container');
-        if(!qrDiv){
-          qrDiv = document.createElement('div');
-          qrDiv.id = 'qr-div-container';
-          qrDiv.style.cssText = 'background:#fff;padding:10px;border-radius:8px;display:inline-block;';
-          canvas.parentNode.insertBefore(qrDiv, canvas.nextSibling);
-        }
-        qrDiv.innerHTML = '';
-        new QRCode(qrDiv, { text: qrUri, width: 180, height: 180 });
-      }
-    } else {
-      // Fallback: используем Google Charts API для генерации QR как изображения
-      console.warn('QRCode library not found, using Google Charts fallback');
-      canvas.style.display = 'none';
-      let imgEl = document.getElementById('qr-fallback-img');
-      if(!imgEl){
-        imgEl = document.createElement('img');
-        imgEl.id = 'qr-fallback-img';
-        imgEl.style.cssText = 'width:200px;height:200px;border-radius:8px;background:#fff;';
-        canvas.parentNode.insertBefore(imgEl, canvas.nextSibling);
-      }
-      const encoded = encodeURIComponent(qrUri);
-      imgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encoded}`;
-      imgEl.style.display = '';
+    let imgEl = document.getElementById('qr-img');
+    if(!imgEl){
+      imgEl = document.createElement('img');
+      imgEl.id = 'qr-img';
+      imgEl.style.cssText = 'width:200px;height:200px;border-radius:8px;background:#fff;display:block;margin:0 auto;';
+      canvas.parentNode.insertBefore(imgEl, canvas);
     }
+    imgEl.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&ecc=M&data=' + encodeURIComponent(qrUri);
+    imgEl.onerror = () => { imgEl.alt = 'QR не загрузился. Используй секретный ключ ниже.'; };
 
-    // Шаг 5: Сохраняем factorId
-    window._2faFactorId = data.id;
-
-    // Шаг 6: Открываем модалку
     document.getElementById('twofa-msg').classList.remove('show');
     document.getElementById('modal-2fa-setup').classList.add('open');
     document.querySelectorAll('#setup-otp-row .otp-digit').forEach(el => el.value = '');
@@ -2038,13 +1995,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay=>{
 // ═══ INIT (fixed — uses shared sb/sbAdmin from supabase-shared.js) ════
 
 async function init(){
-  // Проверяем загрузку библиотеки QRCode
-  if(typeof QRCode === 'undefined'){
-    console.warn('⚠️ QRCode library not loaded. 2FA QR codes will not work.');
-  } else {
-    console.log('✅ QRCode library loaded successfully');
-  }
-  
+  // QR-коды рисуются через api.qrserver.com — JS-библиотека не нужна
   initPolicyInputs();
 
   const {data:{session}} = await sb.auth.getSession();
