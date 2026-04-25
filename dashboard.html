@@ -1427,6 +1427,8 @@ async function load2FAStatus(){
 
 async function setup2FA(){
   try {
+    showMsg('twofa-msg', '⏳ Генерация QR-кода...', 'info');
+    
     // Enroll new TOTP factor
     const {data, error} = await sb.auth.mfa.enroll({
       factorType: 'totp',
@@ -1435,18 +1437,34 @@ async function setup2FA(){
     
     if(error) throw error;
     
-    // Показываем QR код
+    // Показываем секретный ключ
     document.getElementById('totp-secret-display').textContent = data.totp.secret;
     
-    // Генерируем QR
-    const qrData = data.totp.qr_code; // URI формат
+    // Генерируем QR код
+    const qrData = data.totp.qr_code; // URI формат: otpauth://totp/...
     const canvas = document.getElementById('qr-canvas');
-    QRCode.toCanvas(canvas, qrData, {width: 200, margin: 2}, (err) => {
-      if(err) console.error('QR generation failed:', err);
+    
+    // Проверяем наличие библиотеки
+    if(typeof QRCode === 'undefined'){
+      throw new Error('Библиотека QRCode не загружена. Перезагрузите страницу.');
+    }
+    
+    // Генерируем QR-код на canvas
+    await QRCode.toCanvas(canvas, qrData, {
+      width: 200,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      },
+      errorCorrectionLevel: 'M'
     });
     
     // Сохраняем factorId для верификации
     window._2faFactorId = data.id;
+    
+    // Скрываем сообщение
+    document.getElementById('twofa-msg').classList.remove('show');
     
     // Открываем модалку
     document.getElementById('modal-2fa-setup').classList.add('open');
@@ -1454,7 +1472,8 @@ async function setup2FA(){
     document.querySelectorAll('#setup-otp-row .otp-digit')[0].focus();
     
   } catch(e){
-    showMsg('twofa-msg', 'Ошибка настройки 2FA: ' + e.message, 'error');
+    console.error('2FA setup error:', e);
+    showMsg('twofa-msg', '❌ Ошибка: ' + e.message, 'error');
   }
 }
 
@@ -1977,6 +1996,13 @@ document.querySelectorAll('.modal-overlay').forEach(overlay=>{
 // ═══ INIT (fixed — uses shared sb/sbAdmin from supabase-shared.js) ════
 
 async function init(){
+  // Проверяем загрузку библиотеки QRCode
+  if(typeof QRCode === 'undefined'){
+    console.warn('⚠️ QRCode library not loaded. 2FA QR codes will not work.');
+  } else {
+    console.log('✅ QRCode library loaded successfully');
+  }
+  
   initPolicyInputs();
 
   const {data:{session}} = await sb.auth.getSession();
