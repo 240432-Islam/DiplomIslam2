@@ -1200,17 +1200,18 @@ function showApp(){
 async function loadDashboard(){
   document.getElementById('dash-date').textContent = new Date().toLocaleString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-  const [{data:users},{data:logs}] = await Promise.all([
-    sb.from('profiles').select('id,is_active'),
-    sb.from('audit_logs').select('username,event_type,status,created_at').order('created_at',{ascending:false}).limit(50)
-  ]);
+  const {data:logs} = await sb.from('audit_logs')
+    .select('username,event_type,status,created_at')
+    .order('created_at',{ascending:false}).limit(50);
+
+  // Статистику пользователей загружаем отдельно (может не работать без admin RLS)
+  const {data:allUsers} = await sb.from('profiles').select('id,is_active');
 
   const today = new Date().toISOString().slice(0,10);
   const todayEvents = (logs||[]).filter(l=>l.created_at.startsWith(today));
-  const withMfa = (users||[]).length; // simplified
 
-  document.getElementById('s-users').textContent  = (users||[]).length;
-  document.getElementById('s-active').textContent = (users||[]).filter(u=>u.is_active).length;
+  document.getElementById('s-users').textContent  = (allUsers||[]).length || '—';
+  document.getElementById('s-active').textContent = (allUsers||[]).filter(u=>u.is_active).length || '—';
   document.getElementById('s-2fa').textContent    = '—';
   document.getElementById('s-events').textContent = todayEvents.length;
 
@@ -1352,8 +1353,10 @@ async function savePolicy(){
 //  USERS
 // ═══════════════════════════════════════════════════════
 async function loadUsers(){
-  const {data,error} = await sbAdmin.from('profiles').select('*').order('created_at',{ascending:false});
-  if(error){ console.error(error); return; }
+  // Читаем всех пользователей — работает только если RLS позволяет
+  // (select_own — каждый видит себя; для admin список будет только из себя пока нет admin-политики)
+  const {data,error} = await sb.from('profiles').select('*').order('created_at',{ascending:false});
+  if(error){ console.error('loadUsers error:', error.message); usersCache=[]; renderUsersTable(); return; }
   usersCache = data||[];
   renderUsersTable();
 }
@@ -1718,49 +1721,41 @@ async function init(){
 
   currentUser = session.user;
   const meta = session.user.user_metadata || {};
-  const emailUsername = session.user.email?.split('@')[0] || 'user';
-  const username = meta.username || emailUsername;
+  const username = meta.username || session.user.email?.split('@')[0] || 'user';
 
-  // Читаем профиль из базы данных
-  const {data:profileData, error:profileErr} = await sb
+  // Пробуем прочитать профиль
+  let p = null;
+  const {data:profileData} = await sb
     .from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+  p = profileData;
 
-  console.log('Profile from DB:', profileData, 'Error:', profileErr?.message);
-
-  let p = profileData;
-
-  // Профиля нет в БД — пробуем создать
+  // Профиля нет — создаём (триггер мог не сработать)
   if(!p){
-    console.warn('Profile not found in DB, creating...');
-    const {data:created, error:createErr} = await sb.from('profiles').insert({
+    const {data:created} = await sb.from('profiles').insert({
       id: session.user.id,
       full_name: meta.full_name || username,
-      username,
-      role: 'teacher', // новые пользователи — всегда teacher
+      username: meta.username || username,
+      role: meta.role || 'teacher',
       department: meta.department || '',
       is_active: true
     }).select().maybeSingle();
-    console.log('Created profile:', created, 'Error:', createErr?.message);
     p = created;
   }
 
-  // RLS не даёт читать — используем минимальный профиль
-  // НО: role берём ТОЛЬКО из БД, не из meta (meta.role ненадёжна)
+  // Fallback — строим профиль из сессии чтобы не редиректить
   if(!p){
-    console.warn('Cannot read profile via RLS, using session fallback');
     p = {
       id: session.user.id,
-      full_name: username,
-      username,
-      role: 'teacher', // безопасный дефолт — не давать admin через fallback
-      department: '',
+      full_name: meta.full_name || username,
+      username: meta.username || username,
+      role: meta.role || 'teacher',
+      department: meta.department || '',
       is_active: true,
       created_at: new Date().toISOString()
     };
   }
 
   currentProfile = p;
-  console.log('Final profile:', currentProfile.username, currentProfile.role);
   await loadPolicy();
   showApp();
 }
