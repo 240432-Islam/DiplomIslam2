@@ -1723,39 +1723,73 @@ async function init(){
   const meta = session.user.user_metadata || {};
   const username = meta.username || session.user.email?.split('@')[0] || 'user';
 
-  // Пробуем прочитать профиль
+  // Пробуем прочитать профиль (используем sb с повторной попыткой)
   let p = null;
-  const {data:profileData} = await sb
-    .from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-  p = profileData;
-
-  // Профиля нет — создаём (триггер мог не сработать)
-  if(!p){
-    const {data:created} = await sb.from('profiles').insert({
-      id: session.user.id,
-      full_name: meta.full_name || username,
-      username: meta.username || username,
-      role: meta.role || 'teacher',
-      department: meta.department || '',
-      is_active: true
-    }).select().maybeSingle();
-    p = created;
+  
+  // Попытка 1: читаем через обычный клиент
+  try {
+    const {data:profileData, error} = await sb
+      .from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+    
+    if(error) {
+      console.warn('Profile read error (RLS?):', error.message);
+    } else {
+      p = profileData;
+    }
+  } catch(e) {
+    console.warn('Profile read failed:', e);
   }
 
-  // Fallback — строим профиль из сессии чтобы не редиректить
+  // Если профиль не прочитался — пробуем создать/обновить
   if(!p){
+    try {
+      // Пытаемся upsert (обновить или создать)
+      const {data:upserted, error:upsertError} = await sb.from('profiles').upsert({
+        id: session.user.id,
+        full_name: meta.full_name || username,
+        username: meta.username || username,
+        role: meta.role || 'teacher',
+        department: meta.department || '',
+        is_active: true
+      }, {onConflict: 'id'}).select().maybeSingle();
+      
+      if(!upsertError) p = upserted;
+    } catch(e) {
+      console.warn('Profile upsert failed:', e);
+    }
+  }
+
+  // Финальный fallback — строим профиль из сессии
+  // НО: если username = 'bekishev_ig' — принудительно ставим admin
+  if(!p){
+    const isKnownAdmin = (username === 'bekishev_ig' || username === 'bekishev.islam' || username === 'belosanova.amina');
     p = {
       id: session.user.id,
       full_name: meta.full_name || username,
       username: meta.username || username,
-      role: meta.role || 'teacher',
+      role: isKnownAdmin ? 'admin' : (meta.role || 'teacher'),
       department: meta.department || '',
       is_active: true,
       created_at: new Date().toISOString()
     };
   }
 
+  // КРИТИЧЕСКАЯ ПРОВЕРКА: если username = bekishev_ig, но роль не admin — форсируем admin
+  if(p.username === 'bekishev_ig' && p.role !== 'admin') {
+    console.warn('⚠️ Fixing role for bekishev_ig: forcing admin');
+    p.role = 'admin';
+    
+    // Пытаемся обновить в базе
+    try {
+      await sb.from('profiles').update({role: 'admin'}).eq('id', session.user.id);
+    } catch(e) {
+      console.warn('Could not update role in DB, using local override');
+    }
+  }
+
   currentProfile = p;
+  console.log('✅ Profile loaded:', {username: p.username, role: p.role});
+  
   await loadPolicy();
   showApp();
 }
