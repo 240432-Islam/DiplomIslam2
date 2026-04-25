@@ -531,10 +531,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="main-sub" id="dash-date">—</div>
       </div>
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="s-users">—</div><div class="stat-label">Пользователей</div></div>
-        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-val" id="s-active">—</div><div class="stat-label">Активных</div></div>
-        <div class="stat-card"><div class="stat-icon">🔒</div><div class="stat-val" id="s-2fa">—</div><div class="stat-label">С 2FA</div></div>
-        <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-val" id="s-events">—</div><div class="stat-label">Событий сегодня</div></div>
+        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="s-users">—</div><div class="stat-label" id="s-users-label">Пользователей</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-val" id="s-active">—</div><div class="stat-label" id="s-active-label">Активных</div></div>
+        <div class="stat-card"><div class="stat-icon">🔒</div><div class="stat-val" id="s-2fa">—</div><div class="stat-label" id="s-2fa-label">С 2FA</div></div>
+        <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-val" id="s-events">—</div><div class="stat-label" id="s-events-label">Событий сегодня</div></div>
       </div>
       <div class="card">
         <div class="card-title"><span class="card-title-icon">🕐</span> Последние события</div>
@@ -1200,31 +1200,114 @@ function showApp(){
 async function loadDashboard(){
   document.getElementById('dash-date').textContent = new Date().toLocaleString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-  const {data:logs} = await sb.from('audit_logs')
-    .select('username,event_type,status,created_at')
-    .order('created_at',{ascending:false}).limit(50);
+  // Проверяем является ли пользователь админом
+  const isAdmin = currentProfile?.role === 'admin';
 
-  // Статистику пользователей загружаем отдельно (может не работать без admin RLS)
-  const {data:allUsers} = await sb.from('profiles').select('id,is_active');
+  // Загружаем логи
+  let logs = [];
+  try {
+    if(isAdmin) {
+      // Админ видит ВСЕ логи
+      const {data, error} = await sb.from('audit_logs')
+        .select('username,event_type,status,created_at')
+        .order('created_at',{ascending:false})
+        .limit(50);
+      
+      if(error) {
+        console.warn('audit_logs read error:', error.message);
+      } else {
+        logs = data || [];
+      }
+    } else {
+      // Преподаватель видит только СВОИ логи
+      const {data, error} = await sb.from('audit_logs')
+        .select('username,event_type,status,created_at')
+        .eq('user_id', currentUser.id)
+        .order('created_at',{ascending:false})
+        .limit(50);
+      
+      if(error) {
+        console.warn('audit_logs read error:', error.message);
+      } else {
+        logs = data || [];
+      }
+    }
+  } catch(e) {
+    console.warn('audit_logs read failed:', e);
+  }
+
+  // Загружаем статистику пользователей (ВСЕ видят общую статистику)
+  let allUsers = [];
+  try {
+    // Пытаемся загрузить всех пользователей (для общей статистики)
+    const {data, error} = await sb.from('profiles').select('id,is_active,mfa_enabled');
+    
+    if(error) {
+      console.warn('profiles read error (RLS?):', error.message);
+      // Fallback — показываем хотя бы себя
+      allUsers = [currentProfile];
+    } else {
+      allUsers = data || [];
+    }
+  } catch(e) {
+    console.warn('profiles read failed:', e);
+    // Fallback — показываем только текущего пользователя
+    allUsers = [currentProfile];
+  }
 
   const today = new Date().toISOString().slice(0,10);
-  const todayEvents = (logs||[]).filter(l=>l.created_at.startsWith(today));
+  const todayEvents = logs.filter(l=>l.created_at?.startsWith(today));
 
-  document.getElementById('s-users').textContent  = (allUsers||[]).length || '—';
-  document.getElementById('s-active').textContent = (allUsers||[]).filter(u=>u.is_active).length || '—';
-  document.getElementById('s-2fa').textContent    = '—';
+  // Обновляем статистику (одинаково для всех)
+  const totalUsers = allUsers.length;
+  const activeUsers = allUsers.filter(u=>u.is_active).length;
+  // Безопасная проверка mfa_enabled (может не быть в старых базах)
+  const mfaUsers = allUsers.filter(u=>u.mfa_enabled === true).length;
+
+  document.getElementById('s-users').textContent = totalUsers;
+  document.getElementById('s-active').textContent = activeUsers;
+  document.getElementById('s-2fa').textContent = mfaUsers;
   document.getElementById('s-events').textContent = todayEvents.length;
+  
+  // Подписи одинаковые для всех
+  document.getElementById('s-users-label').textContent = 'Пользователей';
+  document.getElementById('s-active-label').textContent = 'Активных';
+  document.getElementById('s-2fa-label').textContent = 'С 2FA';
+  
+  // Только подпись событий разная
+  if(isAdmin) {
+    document.getElementById('s-events-label').textContent = 'Событий сегодня';
+  } else {
+    document.getElementById('s-events-label').textContent = 'Моих событий сегодня';
+  }
 
+  // Отображаем последние события
   const tbody = document.getElementById('dash-events');
-  const recent = (logs||[]).slice(0,8);
-  tbody.innerHTML = recent.map(l=>`
-    <tr>
-      <td>${fmtTime(l.created_at)}</td>
-      <td class="bold">${l.username}</td>
-      <td class="ev-${l.event_type}">${evLabel(l.event_type)}</td>
-      <td><span class="badge badge-${l.status==='success'?'success':'error'}">${l.status==='success'?'Успех':'Ошибка'}</span></td>
-    </tr>
-  `).join('');
+  const recent = logs.slice(0,8);
+  
+  if(recent.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">Нет событий</td></tr>';
+  } else {
+    tbody.innerHTML = recent.map(l=>`
+      <tr>
+        <td>${fmtTime(l.created_at)}</td>
+        <td class="bold">${l.username || '—'}</td>
+        <td class="ev-${l.event_type}">${evLabel(l.event_type)}</td>
+        <td><span class="badge badge-${l.status==='success'?'success':'error'}">${l.status==='success'?'Успех':'Ошибка'}</span></td>
+      </tr>
+    `).join('');
+  }
+
+  // Логируем для диагностики
+  console.log('📊 Dashboard stats:', {
+    role: currentProfile.role,
+    isAdmin,
+    totalUsers,
+    activeUsers,
+    mfaUsers,
+    eventsToday: todayEvents.length,
+    totalEvents: logs.length
+  });
 }
 
 // ═══════════════════════════════════════════════════════
