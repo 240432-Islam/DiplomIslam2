@@ -1715,41 +1715,34 @@ async function init(){
   }
 
   currentUser = session.user;
+  const meta = session.user.user_metadata || {};
+  const username = meta.username || session.user.email?.split('@')[0] || 'user';
 
-  // Пробуем загрузить профиль (пользователь читает свой собственный через RLS)
+  // Пробуем прочитать профиль
   let p = null;
-  const {data:profileData, error:profileErr} = await sb
+  const {data:profileData} = await sb
     .from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-
-  if(profileErr) console.warn('Profile fetch error:', profileErr?.message);
   p = profileData;
 
-  // Если профиля нет — создаём из метаданных auth
+  // Профиля нет — создаём (триггер мог не сработать)
   if(!p){
-    const meta = session.user.user_metadata || {};
-    const username = meta.username || session.user.email?.split('@')[0] || 'user';
-    const insertPayload = {
+    const {data:created} = await sb.from('profiles').insert({
       id: session.user.id,
       full_name: meta.full_name || username,
-      username,
+      username: meta.username || username,
       role: meta.role || 'teacher',
       department: meta.department || '',
       is_active: true
-    };
-    const {data:created, error:createErr} = await sb
-      .from('profiles').insert(insertPayload).select().single();
-    if(createErr) console.warn('Profile insert error:', createErr?.message);
+    }).select().maybeSingle();
     p = created;
   }
 
-  // Если всё равно нет — создаём минимальный профиль из сессии
+  // Fallback — строим профиль из сессии чтобы не редиректить
   if(!p){
-    const meta = session.user.user_metadata || {};
-    const username = meta.username || session.user.email?.split('@')[0] || 'user';
     p = {
       id: session.user.id,
       full_name: meta.full_name || username,
-      username,
+      username: meta.username || username,
       role: meta.role || 'teacher',
       department: meta.department || '',
       is_active: true,
