@@ -385,7 +385,7 @@ async function init(){
       role: meta.role || 'teacher',
       department: meta.department || '',
       is_active: true
-    }).catch(()=>{});
+    }).then(()=>{}).catch(()=>{});
     // Читаем снова
     const {data:p2} = await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
     me = p2 || {
@@ -507,7 +507,7 @@ async function changePw(){
   const {error} = await sb.auth.updateUser({password:nw});
   if(error){showMsg('chpw-msg','Ошибка: '+error.message,'msg-e');return;}
 
-  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:'password_change',description:'Пароль изменён',status:'success'}).catch(()=>{});
+  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:'password_change',description:'Пароль изменён',status:'success'}).then(()=>{}).catch(()=>{});
   showMsg('chpw-msg','✅ Пароль изменён','msg-s');
   ['cpw-old','cpw-new','cpw-c'].forEach(id=>document.getElementById(id).value='');
 }
@@ -579,7 +579,7 @@ async function savePolicy(){
   if(polCache){({error}=await sb.from('password_policies').update(payload).eq('id',polCache.id));}
   else{({error}=await sb.from('password_policies').insert([{...payload,is_active:true}]));}
   if(error){showMsg('pol-msg','Ошибка: '+error.message,'msg-e');return;}
-  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:'policy_updated',description:'Политика обновлена',status:'success'}).catch(()=>{});
+  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:'policy_updated',description:'Политика обновлена',status:'success'}).then(()=>{}).catch(()=>{});
   showMsg('pol-msg','✅ Политика сохранена','msg-s');
   toast('Политика обновлена','t-s');
   lockPolicy();
@@ -617,7 +617,7 @@ function renderUsers(){
 async function toggleUser(uid, active){
   // Используем security definer функцию
   await sb.rpc('update_user_status',{target_id:uid,new_status:!active});
-  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:active?'account_locked':'account_unlocked',description:`Аккаунт ${active?'деактивирован':'активирован'}`,status:'success'}).catch(()=>{});
+  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:active?'account_locked':'account_unlocked',description:`Аккаунт ${active?'деактивирован':'активирован'}`,status:'success'}).then(()=>{}).catch(()=>{});
   toast(active?'Пользователь деактивирован':'Пользователь активирован',active?'t-e':'t-s');
   await loadUsers();
 }
@@ -669,12 +669,12 @@ async function createUser(){
     p_username: uname,
     p_role: role,
     p_department: dept
-  }).catch(()=>{});
+  }).then(()=>{}).catch(()=>{});
 
   await sb.from('audit_logs').insert({
     user_id:me.id, username:me.username,
     event_type:'user_created', description:`Создан: ${uname} (${role})`, status:'success'
-  }).catch(()=>{});
+  }).then(()=>{}).catch(()=>{});
 
   document.getElementById('cu-r-login').textContent = uname;
   document.getElementById('cu-r-pw').textContent = pw;
@@ -718,9 +718,12 @@ function renderAudit(){
 }
 
 // ═══════ HELPERS ═══════
-function logout(){
-  sb.from('audit_logs').insert({user_id:me?.id,username:me?.username,event_type:'logout',description:'Выход',status:'success'}).catch(()=>{});
-  sb.auth.signOut().then(()=>location.href='index.html');
+async function logout(){
+  try {
+    await sb.from('audit_logs').insert({user_id:me?.id,username:me?.username,event_type:'logout',description:'Выход',status:'success'});
+  } catch(e){}
+  await sb.auth.signOut();
+  location.href='index.html';
 }
 
 function toggleEye(id,btn){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';btn.textContent=el.type==='password'?'👁':'🙈';}
