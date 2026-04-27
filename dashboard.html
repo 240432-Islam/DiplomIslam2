@@ -399,6 +399,7 @@ async function init(){
   }
 
   renderSidebar();
+  loadProfile();
   await loadPolicy();
   await loadDash();
 }
@@ -471,15 +472,19 @@ async function loadDash(){
 
 // ═══════ PROFILE ═══════
 function loadProfile(){
-  if(!me) return;
+  if(!me){
+    document.getElementById('pr-rows').innerHTML = '<tr><td colspan="2" style="padding:20px;color:var(--red);text-align:center">Профиль не загружен. Попробуйте выйти и войти снова.</td></tr>';
+    return;
+  }
+  const roleLabels = {admin:'Администратор', teacher:'Преподаватель', student:'Студент'};
   const rows=[
-    ['ФИО', me.full_name||'—'],
-    ['Логин', me.username],
-    ['Отдел', me.department||'—'],
-    ['Роль', me.role==='admin'?'Администратор':me.role==='teacher'?'Преподаватель':'Студент'],
-    ['Статус', me.is_active?'Активен':'Неактивен'],
-    ['Последний вход', me.last_login?fmtDate(me.last_login):'—'],
-    ['Аккаунт создан', fmtDate(me.created_at)],
+    ['ФИО', me.full_name || me.username || '—'],
+    ['Логин', me.username || (me.email ? me.email.split('@')[0] : '—')],
+    ['Отдел', me.department || '—'],
+    ['Роль', roleLabels[me.role] || me.role || '—'],
+    ['Статус', me.is_active !== false ? '✅ Активен' : '🔴 Неактивен'],
+    ['Последний вход', me.last_login ? fmtDate(me.last_login) : '—'],
+    ['Аккаунт создан', me.created_at ? fmtDate(me.created_at) : '—'],
   ];
   document.getElementById('pr-rows').innerHTML = rows.map(([k,v])=>`
     <tr style="border-bottom:1px solid var(--b)">
