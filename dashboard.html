@@ -1951,6 +1951,48 @@ let chatSession = null;
 let chatMessages = [];
 let chatSubscription = null;
 
+async function loadAdminChats() {
+  // Загружаем все чат-сессии для админа
+  const { data, error } = await sb
+    .from('chat_sessions')
+    .select(`
+      *,
+      teacher:teacher_id (full_name, username),
+      student:student_id (full_name, username)
+    `)
+    .order('updated_at', { ascending: false });
+  
+  if (error) {
+    console.error('Admin chats error:', error);
+    return;
+  }
+  
+  const sessions = data || [];
+  
+  if (sessions.length === 0) {
+    document.getElementById('chats-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--t3)">Нет активных чатов</td></tr>';
+    return;
+  }
+  
+  const html = sessions.map(s => {
+    const user = s.teacher || s.student;
+    const userName = user?.full_name || user?.username || 'Неизвестный';
+    const userRole = s.teacher_id ? 'Преподаватель' : 'Студент';
+    
+    return `
+      <tr>
+        <td class="bold">${userName}</td>
+        <td>${userRole}</td>
+        <td><span class="badge ${s.status === 'active' ? 'b-green' : 'b-red'}">${s.status === 'active' ? 'Активен' : 'Закрыт'}</span></td>
+        <td style="font-size:.82rem;color:var(--t3)">${fmtDate(s.updated_at)}</td>
+        <td>—</td>
+      </tr>
+    `;
+  }).join('');
+  
+  document.getElementById('chats-tbody').innerHTML = html;
+}
+
 async function openChat() {
   const { data: existing } = await sb
     .from('chat_sessions')
