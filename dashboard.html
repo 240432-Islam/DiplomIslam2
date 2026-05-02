@@ -1574,11 +1574,12 @@ async function deleteUsersByRole(role) {
     return;
   }
   
-  // Получаем список пользователей
+  // Получаем список пользователей (исключая админов и себя)
   const { data: usersToDelete } = await sb
     .from('profiles')
     .select('id, username')
-    .eq('role', role);
+    .eq('role', role)
+    .neq('id', me.id); // Не удаляем себя
   
   if (!usersToDelete || usersToDelete.length === 0) {
     toast('Нет пользователей с такой ролью', 't-e');
@@ -1590,7 +1591,8 @@ async function deleteUsersByRole(role) {
     .from('profiles')
     .delete()
     .eq('role', role)
-    .neq('id', me.id); // Не удаляем себя
+    .neq('id', me.id) // Не удаляем себя
+    .neq('role', 'admin'); // Не удаляем админов
   
   if (error) {
     toast('Ошибка: ' + error.message, 't-e');
