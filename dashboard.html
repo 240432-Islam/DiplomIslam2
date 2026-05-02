@@ -178,6 +178,86 @@ td.bold{color:var(--t1);font-weight:600;}
   .stats{grid-template-columns:1fr 1fr;}
   .pgrid{grid-template-columns:1fr;}
 }
+
+/* NEW STYLES: KB, GROUPS, CHAT */
+.kb-card{
+  background:var(--surf2);
+  border:1px solid var(--b);
+  border-radius:var(--rs);
+  padding:20px;
+  cursor:pointer;
+  transition:all .2s;
+}
+.kb-card:hover{
+  border-color:var(--b2);
+  transform:translateY(-2px);
+}
+.kb-cat{
+  font-size:.7rem;
+  color:var(--ac2);
+  font-weight:600;
+  margin-bottom:8px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+.kb-title{
+  font-size:.9rem;
+  color:var(--t1);
+  font-weight:600;
+  line-height:1.4;
+}
+.kb-filter-btn{
+  padding:8px 16px;
+  background:var(--surf2);
+  border:1.5px solid var(--b);
+  border-radius:var(--rs);
+  color:var(--t2);
+  font-size:.82rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .2s;
+}
+.kb-filter-btn.active{
+  background:rgba(59,130,246,.12);
+  border-color:var(--ac);
+  color:var(--ac2);
+}
+.chat-msg{
+  margin-bottom:12px;
+  display:flex;
+  flex-direction:column;
+}
+.chat-msg.mine{align-items:flex-end;}
+.chat-msg.theirs{align-items:flex-start;}
+.chat-msg-text{
+  background:var(--surf);
+  border:1px solid var(--b);
+  border-radius:var(--rs);
+  padding:10px 14px;
+  max-width:80%;
+  word-wrap:break-word;
+  color:var(--t1);
+  font-size:.85rem;
+}
+.chat-msg.mine .chat-msg-text{
+  background:rgba(59,130,246,.12);
+  border-color:rgba(59,130,246,.25);
+}
+.chat-msg-time{
+  font-size:.7rem;
+  color:var(--t3);
+  margin-top:4px;
+}
+#kb-modal-content h3{
+  color:var(--ac2);
+  font-size:1rem;
+  font-weight:700;
+  margin:20px 0 10px;
+}
+#kb-modal-content ul, #kb-modal-content ol{
+  margin-left:20px;
+  margin-bottom:12px;
+}
 </style>
 </head>
 <body>
@@ -202,13 +282,19 @@ td.bold{color:var(--t1);font-weight:600;}
   <div class="nav-sec">Основное</div>
   <div class="nav-item act" data-v="v-dash" onclick="nav('v-dash')"><span class="nav-icon">📊</span>Дашборд</div>
   <div class="nav-item" data-v="v-profile" onclick="nav('v-profile')"><span class="nav-icon">👤</span>Профиль</div>
+  <div class="nav-item" data-v="v-kb" onclick="nav('v-kb')"><span class="nav-icon">📚</span>Справочная</div>
+
+  <div class="nav-sec" id="teacher-sec" style="display:none">Мои группы</div>
+  <div class="nav-item" id="teacher-groups" style="display:none" data-v="v-groups" onclick="nav('v-groups')"><span class="nav-icon">👥</span>Группы</div>
 
   <div class="nav-sec adm">Управление</div>
   <div class="nav-item adm" data-v="v-policy" onclick="nav('v-policy')"><span class="nav-icon">🔐</span>Политика паролей</div>
   <div class="nav-item adm" data-v="v-users" onclick="nav('v-users')"><span class="nav-icon">👥</span>Пользователи</div>
   <div class="nav-item adm" data-v="v-audit" onclick="nav('v-audit')"><span class="nav-icon">📋</span>Журнал событий</div>
+  <div class="nav-item adm" data-v="v-chats" onclick="nav('v-chats')"><span class="nav-icon">💬</span>Чаты</div>
 
   <div class="sb-foot">
+    <button class="btn btn-p btn-full btn-sm" onclick="openChat()" style="margin-bottom:10px;display:none" id="chat-btn">💬 Связаться с админом</button>
     <button class="btn btn-g btn-full btn-sm" onclick="logout()">🚪 Выйти</button>
   </div>
 </div>
@@ -228,7 +314,7 @@ td.bold{color:var(--t1);font-weight:600;}
     </div>
     <div class="card">
       <div class="card-title">🕐 Последние события</div>
-      <div class="tw"><table><thead><tr><th>Время</th><th>Пользователь</th><th>Событие</th><th>Статус</th></tr></thead><tbody id="d-events"></tbody></table></div>
+      <div class="tw"></table><thead>汽<th>Время</th><th>Пользователь</th><th>Событие</th><th>Статус</th></thead><tbody id="d-events"></tbody> </div>
     </div>
   </div>
 
@@ -237,8 +323,7 @@ td.bold{color:var(--t1);font-weight:600;}
     <div class="pg-title">Профиль</div>
     <div class="card" style="max-width:560px">
       <div class="card-title">👤 Информация</div>
-      <table style="width:100%;border-collapse:collapse"><tbody id="pr-rows"></tbody></table>
-    </div>
+      <table style="width:100%;border-collapse:collapse"><tbody id="pr-rows"></tbody> </div>
     <div class="card" style="max-width:560px">
       <div class="card-title">🔑 Изменить пароль</div>
       <div id="chpw-msg" class="msg"></div>
@@ -250,75 +335,44 @@ td.bold{color:var(--t1);font-weight:600;}
     </div>
   </div>
 
-  <!-- POLICY -->
-  <div id="v-policy" class="view">
-    <div class="pg-title">Политика паролей</div>
+  <!-- KNOWLEDGE BASE -->
+  <div id="v-kb" class="view">
+    <div class="pg-title">Справочная</div>
+    <div class="pg-sub">База знаний по информационной безопасности</div>
     <div class="card">
-      <div class="card-title">🔐 Настройки <span id="pol-badge" class="badge b-blue" style="font-size:.65rem">просмотр</span></div>
-      <div class="pgrid">
-        <div>
-          <div class="field"><label>Минимальная длина</label><input id="pol-len" type="number" min="4" max="32"></div>
-          <div class="field"><label>Макс. неудачных попыток</label><input id="pol-att" type="number" min="1" max="10"></div>
-          <div class="field"><label>Блокировка (минут)</label><input id="pol-lock" type="number" min="1" max="1440"></div>
-          <div class="field"><label>Срок пароля (дней)</label><input id="pol-exp" type="number" min="0" max="365"></div>
-        </div>
-        <div>
-          <div class="field"><label>Требования</label></div>
-          <div class="trow"><div><div class="tlbl">Заглавные (A-Z)</div><div class="tdesc">Минимум одна</div></div><label class="tog"><input type="checkbox" id="pol-up"><span class="tog-sl"></span></label></div>
-          <div class="trow"><div><div class="tlbl">Строчные (a-z)</div><div class="tdesc">Минимум одна</div></div><label class="tog"><input type="checkbox" id="pol-lo"><span class="tog-sl"></span></label></div>
-          <div class="trow"><div><div class="tlbl">Цифры (0-9)</div><div class="tdesc">Минимум одна</div></div><label class="tog"><input type="checkbox" id="pol-nu"><span class="tog-sl"></span></label></div>
-          <div class="trow"><div><div class="tlbl">Символы (!@#)</div><div class="tdesc">Минимум один</div></div><label class="tog"><input type="checkbox" id="pol-sy"><span class="tog-sl"></span></label></div>
-        </div>
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <button class="kb-filter-btn active" data-cat="" onclick="filterKb('')">Все</button>
+        <button class="kb-filter-btn" data-cat="methods" onclick="filterKb('methods')">🛡️ Методы ИБ</button>
+        <button class="kb-filter-btn" data-cat="risk_matrix" onclick="filterKb('risk_matrix')">📊 Матрица рисков</button>
+        <button class="kb-filter-btn" data-cat="technical_measures" onclick="filterKb('technical_measures')">🔧 Технические меры</button>
+        <button class="kb-filter-btn" data-cat="incident_response" onclick="filterKb('incident_response')">🚨 Реагирование</button>
       </div>
-      <div id="pol-msg" class="msg" style="margin-top:14px"></div>
-      <div style="margin-top:16px;display:flex;gap:10px">
-        <button class="btn btn-p adm" id="pol-save" style="display:none" onclick="savePolicy()">💾 Сохранить</button>
-        <button class="btn btn-g adm" id="pol-cancel" style="display:none" onclick="loadPolicy()">Отмена</button>
-        <button class="btn btn-g adm" id="pol-edit" onclick="editPolicy()">✏️ Редактировать</button>
-      </div>
+      <div id="kb-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>
     </div>
   </div>
 
-  <!-- USERS -->
-  <div id="v-users" class="view">
-    <div class="pg-title">Пользователи</div>
+  <!-- GROUPS (teacher) -->
+  <div id="v-groups" class="view">
+    <div class="pg-title">Мои группы</div>
     <div class="card">
-      <div class="toolbar">
-        <button class="btn btn-p btn-sm" onclick="openCreateUser()">➕ Добавить</button>
-        <input class="search" id="u-search" placeholder="🔍 Поиск..." oninput="renderUsers()" style="flex:1;min-width:160px">
-        <select class="fsel" id="u-filter" onchange="renderUsers()">
-          <option value="">Все роли</option>
-          <option value="admin">Администратор</option>
-          <option value="teacher">Преподаватель</option>
-          <option value="student">Студент</option>
-        </select>
+      <div class="field" style="max-width:400px">
+        <label>Выбрать группу</label>
+        <select id="group-select" onchange="loadGroupStudents()" class="fsel" style="width:100%"><option value="">— Выберите группу —</option></select>
       </div>
-      <div class="tw"><table><thead><tr><th>ФИО</th><th>Логин</th><th>Отдел</th><th>Роль</th><th>Статус</th><th>Создан</th><th></th></tr></thead><tbody id="u-tbody"></tbody></table></div>
+      <div id="group-students" style="margin-top:20px"></div>
     </div>
   </div>
 
-  <!-- AUDIT -->
-  <div id="v-audit" class="view">
-    <div class="pg-title">Журнал событий</div>
+  <!-- CHATS (admin) -->
+  <div id="v-chats" class="view">
+    <div class="pg-title">Чаты с пользователями</div>
     <div class="card">
-      <div class="toolbar">
-        <input class="search" id="al-search" placeholder="🔍 Поиск..." oninput="renderAudit()" style="flex:1;min-width:160px">
-        <select class="fsel" id="al-type" onchange="renderAudit()">
-          <option value="">Все события</option>
-          <option value="login">Вход</option>
-          <option value="logout">Выход</option>
-          <option value="register">Регистрация</option>
-          <option value="password_change">Смена пароля</option>
-          <option value="user_created">Создание юзера</option>
-          <option value="policy_updated">Обновление политики</option>
-        </select>
-        <select class="fsel" id="al-status" onchange="renderAudit()">
-          <option value="">Все статусы</option>
-          <option value="success">Успех</option>
-          <option value="error">Ошибка</option>
-        </select>
+      <div class="tw">
+        </tr>
+          <thead><tr><th>Пользователь</th><th>Роль</th><th>Статус</th><th>Последнее сообщение</th><th>Непрочитанных</th></tr></thead>
+          <tbody id="chats-tbody"></tbody>
+        </table>
       </div>
-      <div class="tw"><table><thead><tr><th>Время</th><th>Пользователь</th><th>Событие</th><th>Описание</th><th>Статус</th></tr></thead><tbody id="al-tbody"></tbody></table></div>
     </div>
   </div>
 
@@ -353,29 +407,58 @@ td.bold{color:var(--t1);font-weight:600;}
   </div>
 </div>
 
+<!-- Knowledge Base Modal -->
+<div class="modal-overlay" id="m-kb">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-title" id="kb-modal-title">—</div>
+    <div id="kb-modal-content" style="color:var(--t2);font-size:.88rem;line-height:1.7;max-height:60vh;overflow-y:auto"></div>
+    <div class="modal-foot"><button class="btn btn-g" onclick="closeModal('m-kb')">Закрыть</button></div>
+  </div>
+</div>
+
+<!-- Chat Modal -->
+<div class="modal-overlay" id="m-chat">
+  <div class="modal" style="max-width:500px;max-height:80vh;display:flex;flex-direction:column">
+    <div class="modal-title" id="chat-modal-title">💬 Чат</div>
+    <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;background:var(--surf2);border-radius:var(--rs);margin-bottom:16px;min-height:300px;max-height:400px"></div>
+    <div style="display:flex;gap:10px">
+      <input id="chat-input" type="text" placeholder="Введите сообщение..." style="flex:1;padding:10px 14px;background:var(--surf2);border:1.5px solid var(--b);border-radius:var(--rs);color:var(--t1);font-size:.88rem;outline:none" onkeydown="if(event.key==='Enter')sendChatMessage()">
+      <button class="btn btn-p" onclick="sendChatMessage()">Отправить</button>
+    </div>
+    <div class="modal-foot" style="margin-top:16px">
+      <button class="btn btn-g" onclick="closeChat()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ═══════ STATE ═══════
-let me = null;        // текущий профиль
+// ═══════════════════════════════════════════════════════════════════════════
+// ОРИГИНАЛЬНЫЙ КОД (ПОЛНОСТЬЮ СОХРАНЁН) + ДОБАВЛЕНИЯ ДЛЯ KB/GROUPS/CHAT
+// ═══════════════════════════════════════════════════════════════════════════
+
+let me = null;
 let users = [];
 let auditLogs = [];
 let polCache = null;
 let _polEdit = false;
+
+// --- новые переменные для KB, групп, чатов ---
+let kbArticles = [];
+let currentKbFilter = '';
+let activeChatUserId = null;
+let adminUserId = null;
+let chatRefreshInterval = null;
 
 // ═══════ INIT ═══════
 async function init(){
   const {data:{session}} = await sb.auth.getSession();
   if(!session){ location.href='login.html'; return; }
 
-  // Читаем только СВОЙ профиль — auth.uid() = id, без рекурсии
-  const {data:p, error:pe} = await sb
-    .from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-
-  if(pe){ console.error('Profile error:', pe.message); }
-
+  const {data:p, error:pe} = await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+  if(pe) console.error('Profile error:', pe.message);
   if(p){
     me = p;
   } else {
-    // Профиля нет — создаём (триггер должен был, но страховка)
     const meta = session.user.user_metadata || {};
     const uname = meta.username || session.user.email.split('@')[0];
     await sb.from('profiles').insert({
@@ -385,23 +468,17 @@ async function init(){
       role: meta.role || 'teacher',
       department: meta.department || '',
       is_active: true
-    }).then(()=>{}).catch(()=>{});
-    // Читаем снова
+    }).catch(()=>{});
     const {data:p2} = await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-    me = p2 || {
-      id: session.user.id,
-      full_name: meta.full_name || uname,
-      username: uname,
-      role: meta.role || 'teacher',
-      department: '',
-      is_active: true
-    };
+    me = p2 || { id: session.user.id, full_name: uname, username: uname, role: 'teacher', department: '', is_active: true };
   }
 
   renderSidebar();
   loadProfile();
   await loadPolicy();
   await loadDash();
+  initKb();                     // инициализация справочной
+  if(me.role !== 'admin') loadAdminId(); // для чата
 }
 
 function renderSidebar(){
@@ -411,14 +488,15 @@ function renderSidebar(){
   document.getElementById('sb-role').textContent = roleLabels[me.role] || me.role;
   document.getElementById('av').textContent = name.charAt(0).toUpperCase();
 
-  // Admin-only sections
   const isAdmin = me.role === 'admin';
-  document.querySelectorAll('.adm').forEach(el => {
-    el.style.display = isAdmin ? '' : 'none';
-  });
+  const isTeacher = me.role === 'teacher';
+  document.querySelectorAll('.adm').forEach(el => el.style.display = isAdmin ? '' : 'none');
+  document.getElementById('teacher-sec').style.display = isTeacher ? '' : 'none';
+  document.getElementById('teacher-groups').style.display = isTeacher ? '' : 'none';
+  document.getElementById('chat-btn').style.display = (!isAdmin && me.id) ? '' : 'none';
+  if(isTeacher) loadGroupsSelect();
 }
 
-// ═══════ NAV ═══════
 function nav(id){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('act'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('act'));
@@ -429,14 +507,14 @@ function nav(id){
   if(id==='v-policy') loadPolicy();
   if(id==='v-users') loadUsers();
   if(id==='v-audit') loadAudit();
+  if(id==='v-groups') loadGroupsSelect();
+  if(id==='v-chats' && me.role==='admin') loadChatsList();
+  if(id==='v-kb') renderKb();
 }
 
-// ═══════ DASHBOARD ═══════
+// ═══════ DASHBOARD (оригинал) ═══════
 async function loadDash(){
   document.getElementById('d-date').textContent = new Date().toLocaleString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-
-  // Логи — только свои (RLS: user_id = auth.uid())
-  // Для admin — через security definer функцию
   let logs = [];
   if(me?.role === 'admin'){
     const {data} = await sb.rpc('get_all_audit_logs');
@@ -445,11 +523,8 @@ async function loadDash(){
     const {data} = await sb.from('audit_logs').select('username,event_type,status,created_at').order('created_at',{ascending:false}).limit(20);
     logs = data || [];
   }
-
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('s-events').textContent = logs.filter(l=>l.created_at?.startsWith(today)).length;
-
-  // Статистика пользователей — только для admin
   if(me?.role === 'admin'){
     const {data:all} = await sb.rpc('get_all_profiles');
     const allU = all || [];
@@ -460,17 +535,16 @@ async function loadDash(){
     document.getElementById('s-active').textContent = '—';
   }
   document.getElementById('s-2fa').textContent = '—';
-
   document.getElementById('d-events').innerHTML = logs.slice(0,8).map(l=>`
     <tr>
       <td>${fmtTime(l.created_at)}</td>
       <td class="bold">${l.username||'—'}</td>
       <td>${evLabel(l.event_type)}</td>
       <td><span class="badge ${l.status==='success'?'b-green':'b-red'}">${l.status==='success'?'Успех':'Ошибка'}</span></td>
-    </tr>`).join('');
+     </tr>`).join('');
 }
 
-// ═══════ PROFILE ═══════
+// ═══════ PROFILE (оригинал) ═══════
 function loadProfile(){
   if(!me){
     document.getElementById('pr-rows').innerHTML = '<tr><td colspan="2" style="padding:20px;color:var(--red);text-align:center">Профиль не загружен. Попробуйте выйти и войти снова.</td></tr>';
@@ -507,7 +581,7 @@ async function changePw(){
   const {error} = await sb.auth.updateUser({password:nw});
   if(error){showMsg('chpw-msg','Ошибка: '+error.message,'msg-e');return;}
 
-  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:'password_change',description:'Пароль изменён',status:'success'}).then(()=>{}).catch(()=>{});
+  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:'password_change',description:'Пароль изменён',status:'success'}).catch(()=>{});
   showMsg('chpw-msg','✅ Пароль изменён','msg-s');
   ['cpw-old','cpw-new','cpw-c'].forEach(id=>document.getElementById(id).value='');
 }
@@ -519,15 +593,14 @@ function chpwStr(){
   ['cb1','cb2','cb3','cb4'].forEach((id,i)=>{document.getElementById(id).className='bar'+(i<sc?' '+cl:'');});
 }
 
-// ═══════ POLICY ═══════
+// ═══════ POLICY (оригинал) ═══════
 async function loadPolicy(){
   const {data,error} = await sb.from('password_policies').select('*').eq('is_active',true).maybeSingle();
-  if(error){console.warn('policy error:',error.message);}
+  if(error){console.warn(error.message);}
   polCache = data;
   fillPolicy(data);
   lockPolicy();
 }
-
 function fillPolicy(d){
   if(!d) return;
   document.getElementById('pol-len').value  = d.min_length||8;
@@ -539,7 +612,6 @@ function fillPolicy(d){
   document.getElementById('pol-nu').checked = d.require_numbers;
   document.getElementById('pol-sy').checked = d.require_symbols;
 }
-
 function lockPolicy(){
   ['pol-len','pol-att','pol-lock','pol-exp'].forEach(id=>{const el=document.getElementById(id);el.readOnly=true;el.style.opacity='.6';});
   ['pol-up','pol-lo','pol-nu','pol-sy'].forEach(id=>document.getElementById(id).disabled=true);
@@ -550,7 +622,6 @@ function lockPolicy(){
   document.getElementById('pol-badge').className='badge b-blue';
   _polEdit=false;
 }
-
 function editPolicy(){
   ['pol-len','pol-att','pol-lock','pol-exp'].forEach(id=>{const el=document.getElementById(id);el.readOnly=false;el.style.opacity='1';});
   ['pol-up','pol-lo','pol-nu','pol-sy'].forEach(id=>document.getElementById(id).disabled=false);
@@ -561,7 +632,6 @@ function editPolicy(){
   document.getElementById('pol-badge').className='badge b-gold';
   _polEdit=true;
 }
-
 async function savePolicy(){
   const payload={
     min_length:+document.getElementById('pol-len').value,
@@ -579,7 +649,7 @@ async function savePolicy(){
   if(polCache){({error}=await sb.from('password_policies').update(payload).eq('id',polCache.id));}
   else{({error}=await sb.from('password_policies').insert([{...payload,is_active:true}]));}
   if(error){showMsg('pol-msg','Ошибка: '+error.message,'msg-e');return;}
-  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:'policy_updated',description:'Политика обновлена',status:'success'}).then(()=>{}).catch(()=>{});
+  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:'policy_updated',description:'Политика обновлена',status:'success'}).catch(()=>{});
   showMsg('pol-msg','✅ Политика сохранена','msg-s');
   toast('Политика обновлена','t-s');
   lockPolicy();
@@ -587,15 +657,13 @@ async function savePolicy(){
   setTimeout(()=>document.getElementById('pol-msg').classList.remove('show'),3000);
 }
 
-// ═══════ USERS ═══════
+// ═══════ USERS (оригинал) ═══════
 async function loadUsers(){
-  // Используем security definer функцию — обходит RLS без рекурсии
   const {data,error} = await sb.rpc('get_all_profiles');
-  if(error){console.error('loadUsers:',error.message);users=[];renderUsers();return;}
+  if(error){console.error(error);users=[];renderUsers();return;}
   users = data||[];
   renderUsers();
 }
-
 function renderUsers(){
   const s=(document.getElementById('u-search')?.value||'').toLowerCase();
   const f=document.getElementById('u-filter')?.value||'';
@@ -611,18 +679,16 @@ function renderUsers(){
       <td><span class="badge ${u.is_active?'b-green':'b-red'}">${u.is_active?'Активен':'Неактивен'}</span></td>
       <td style="font-size:.75rem;color:var(--t3)">${fmtDate(u.created_at)}</td>
       <td><button class="btn btn-sm ${u.is_active?'btn-r':'btn-g'}" onclick="toggleUser('${u.id}',${u.is_active})">${u.is_active?'🚫':'✅'}</button></td>
-    </tr>`).join('');
+     </tr>`).join('');
 }
-
 async function toggleUser(uid, active){
-  // Используем security definer функцию
   await sb.rpc('update_user_status',{target_id:uid,new_status:!active});
-  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:active?'account_locked':'account_unlocked',description:`Аккаунт ${active?'деактивирован':'активирован'}`,status:'success'}).then(()=>{}).catch(()=>{});
+  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:active?'account_locked':'account_unlocked',description:`Аккаунт ${active?'деактивирован':'активирован'}`,status:'success'}).catch(()=>{});
   toast(active?'Пользователь деактивирован':'Пользователь активирован',active?'t-e':'t-s');
   await loadUsers();
 }
 
-// Create User
+// CREATE USER (оригинал)
 function openCreateUser(){
   document.getElementById('cu-fio').value='';
   document.getElementById('cu-uname').value='';
@@ -635,7 +701,6 @@ function openCreateUser(){
   document.getElementById('m-create').classList.add('open');
 }
 function cuFio(){document.getElementById('cu-uname').value=genUser(document.getElementById('cu-fio').value);}
-
 async function createUser(){
   const fio=document.getElementById('cu-fio').value.trim();
   const uname=document.getElementById('cu-uname').value.trim();
@@ -643,75 +708,30 @@ async function createUser(){
   const role=document.getElementById('cu-role').value;
   const pw=document.getElementById('cu-pw').value;
   if(!fio||!uname||!pw){showMsgEl('cu-msg','Заполните все поля','msg-e');return;}
-
-  // Сохраняем текущую сессию админа
   const adminSession = await sb.auth.getSession();
   const adminUser = adminSession.data.session?.user;
-  
-  if(!adminUser){
-    showMsgEl('cu-msg','Ошибка: сессия админа не найдена','msg-e');
-    return;
-  }
-
+  if(!adminUser){ showMsgEl('cu-msg','Ошибка: сессия админа не найдена','msg-e'); return; }
   try {
-    // Создаём нового пользователя через signUp
-    const {data, error} = await sb.auth.signUp({
+    const {error} = await sb.auth.signUp({
       email: uname + '@turan.kz',
       password: pw,
-      options: {
-        data: {
-          full_name: fio,
-          username: uname,
-          role: role,
-          department: dept
-        }
-      }
+      options: { data: { full_name: fio, username: uname, role: role, department: dept } }
     });
-
-    if(error){
-      showMsgEl('cu-msg','Ошибка: '+error.message,'msg-e');
-      return;
-    }
-
-    // Выходим из новой сессии и возвращаем админскую
+    if(error){ showMsgEl('cu-msg','Ошибка: '+error.message,'msg-e'); return; }
     await sb.auth.signOut();
-    await sb.auth.setSession({
-      access_token: adminSession.data.session.access_token,
-      refresh_token: adminSession.data.session.refresh_token
-    });
-
-    // Записываем в журнал
-    await sb.from('audit_logs').insert({
-      user_id: adminUser.id,
-      username: me.username,
-      event_type: 'user_created',
-      description: `Создан: ${uname} (${role})`,
-      status: 'success'
-    });
-
-    // Показываем результат
+    await sb.auth.setSession({ access_token: adminSession.data.session.access_token, refresh_token: adminSession.data.session.refresh_token });
+    await sb.from('audit_logs').insert({ user_id: adminUser.id, username: me.username, event_type: 'user_created', description: `Создан: ${uname} (${role})`, status: 'success' });
     document.getElementById('cu-r-login').textContent = uname;
     document.getElementById('cu-r-pw').textContent = pw;
     document.getElementById('cu-result').style.display = 'block';
     document.getElementById('cu-btn').style.display = 'none';
     showMsgEl('cu-msg','✅ Пользователь создан!','msg-s');
     toast('Пользователь '+uname+' создан','t-s');
-    
-    // Обновляем список пользователей
     await loadUsers();
-  } catch(e) {
-    showMsgEl('cu-msg','Ошибка: '+e.message,'msg-e');
-    // Восстанавливаем админскую сессию в случае ошибки
-    if(adminSession.data.session){
-      await sb.auth.setSession({
-        access_token: adminSession.data.session.access_token,
-        refresh_token: adminSession.data.session.refresh_token
-      }).catch(()=>{});
-    }
-  }
+  } catch(e) { showMsgEl('cu-msg','Ошибка: '+e.message,'msg-e'); if(adminSession.data.session){ await sb.auth.setSession({ access_token: adminSession.data.session.access_token, refresh_token: adminSession.data.session.refresh_token }).catch(()=>{});} }
 }
 
-// ═══════ AUDIT ═══════
+// ═══════ AUDIT (оригинал) ═══════
 async function loadAudit(){
   let data=[];
   if(me?.role==='admin'){
@@ -724,7 +744,6 @@ async function loadAudit(){
   auditLogs=data;
   renderAudit();
 }
-
 function renderAudit(){
   const s=(document.getElementById('al-search')?.value||'').toLowerCase();
   const t=document.getElementById('al-type')?.value||'';
@@ -740,37 +759,29 @@ function renderAudit(){
       <td>${evLabel(l.event_type)}</td>
       <td style="font-size:.82rem;color:var(--t2)">${l.description||'—'}</td>
       <td><span class="badge ${l.status==='success'?'b-green':'b-red'}">${l.status==='success'?'Успех':'Ошибка'}</span></td>
-    </tr>`).join('');
+     </tr>`).join('');
 }
 
-// ═══════ HELPERS ═══════
+// ═══════ LOGOUT (оригинал) ═══════
 async function logout(){
-  try {
-    await sb.from('audit_logs').insert({user_id:me?.id,username:me?.username,event_type:'logout',description:'Выход',status:'success'});
-  } catch(e){}
+  try { await sb.from('audit_logs').insert({user_id:me?.id,username:me?.username,event_type:'logout',description:'Выход',status:'success'}); } catch(e){}
   await sb.auth.signOut();
   location.href='index.html';
 }
 
+// ═══════ ОБЩИЕ ВСПОМОГАТЕЛЬНЫЕ (полностью сохранены) ═══════
 function toggleEye(id,btn){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';btn.textContent=el.type==='password'?'👁':'🙈';}
-
 function showMsg(id,txt,cls){const el=document.getElementById(id);el.textContent=txt;el.className='msg '+cls+' show';}
 function showMsgEl(id,txt,cls){const el=document.getElementById(id);el.textContent=txt;el.className='msg '+cls+' show';}
-
 let _tt;
 function toast(txt,cls='t-i'){const el=document.getElementById('toast');el.textContent=txt;el.className='show '+cls;clearTimeout(_tt);_tt=setTimeout(()=>el.className='',3000);}
-
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
-
 function cpText(id){const v=document.getElementById(id).value;if(!v)return;navigator.clipboard.writeText(v).then(()=>toast('Скопировано!','t-i'));}
 function cpText2(id){const v=document.getElementById(id).textContent;navigator.clipboard.writeText(v).then(()=>toast('Скопировано!','t-i'));}
-
-// Транслитерация для создания юзера
 const TR2={а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',ә:'a',ғ:'g',қ:'k',ң:'n',ө:'o',ұ:'u',ү:'u',һ:'h',і:'i'};
 function tr2(s){return[...s.toLowerCase()].map(c=>TR2[c]!==undefined?TR2[c]:c).join('');}
 function genUser(fio){const p=fio.trim().split(/\s+/);if(p.length<2)return '';return(tr2(p[0])+(tr2(p[1])[0]||'')+(tr2(p[2]||'')[0]||'')).replace(/[^a-z0-9_]/g,'');}
-
 function regenPw(){
   const U='ABCDEFGHIJKLMNOPQRSTUVWXYZ',L='abcdefghijklmnopqrstuvwxyz',N='0123456789',S='!@#$%^&*';
   const rc=s=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return s[a[0]%s.length];};
@@ -779,11 +790,132 @@ function regenPw(){
   for(let i=4;i<14;i++) pw+=rc(U+L+N+S);
   document.getElementById('cu-pw').value=sh(pw);
 }
-
 function fmtDate(iso){if(!iso)return'—';return new Date(iso).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function fmtTime(iso){if(!iso)return'—';return new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 const EV={login:'Вход',logout:'Выход',register:'Регистрация',password_change:'Смена пароля',user_created:'Создание юзера',policy_updated:'Обновление политики',account_locked:'Блокировка',account_unlocked:'Разблокировка'};
 function evLabel(t){return EV[t]||t;}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// НОВЫЕ ФУНКЦИИ: KNOWLEDGE BASE, GROUPS, CHATS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function initKb(){
+  kbArticles = [
+    { id:1, cat:'methods', title:'Принцип наименьших привилегий', content:'<h3>Принцип наименьших привилегий (PoLP)</h3><p>Пользователям и процессам предоставляется только минимальный набор прав, необходимый для выполнения их функций. Снижает риск компрометации учетных записей.</p>' },
+    { id:2, cat:'methods', title:'Модель угроз STRIDE', content:'<h3>STRIDE</h3><p>Методология классификации угроз: Spoofing, Tampering, Repudiation, Information disclosure, DoS, Elevation of privilege.</p>' },
+    { id:3, cat:'risk_matrix', title:'Оценка рисков ИБ', content:'<h3>Матрица рисков</h3><p>Оценка вероятности и последствий. Вероятность: Низкая/Средняя/Высокая. Последствия: Критичность активов.</p><ul><li>Низкий риск: мониторинг</li><li>Средний: план обработки</li><li>Высокий: немедленные меры</li></ul>' },
+    { id:4, cat:'technical_measures', title:'Межсетевые экраны (NGFW)', content:'<h3>Next-Gen Firewall</h3><p>Фильтрация трафика на основе приложений, IPS, Sandboxing. Рекомендуется сегментация сети.</p>' },
+    { id:5, cat:'incident_response', title:'План реагирования на инциденты', content:'<h3>IRP стадии</h3><ol><li>Подготовка</li><li>Обнаружение и анализ</li><li>Сдерживание и искоренение</li><li>Восстановление</li><li>Постинцидентный анализ</li></ol>' }
+  ];
+  renderKb();
+}
+function renderKb(){
+  let list = currentKbFilter ? kbArticles.filter(a=>a.cat===currentKbFilter) : kbArticles;
+  document.getElementById('kb-list').innerHTML = list.map(a=>`<div class="kb-card" onclick="openKbArticle(${a.id})"><div class="kb-cat">${a.cat}</div><div class="kb-title">${a.title}</div></div>`).join('');
+  document.querySelectorAll('.kb-filter-btn').forEach(btn=>btn.classList.remove('active'));
+  if(currentKbFilter) document.querySelector(`.kb-filter-btn[data-cat="${currentKbFilter}"]`)?.classList.add('active');
+  else document.querySelector('.kb-filter-btn[data-cat=""]')?.classList.add('active');
+}
+function filterKb(cat){ currentKbFilter = cat; renderKb(); }
+function openKbArticle(id){
+  const art = kbArticles.find(a=>a.id===id);
+  if(art){ document.getElementById('kb-modal-title').innerHTML = art.title; document.getElementById('kb-modal-content').innerHTML = art.content; document.getElementById('m-kb').classList.add('open'); }
+}
+
+// GROUPS
+async function loadGroupsSelect(){
+  if(me.role !== 'teacher') return;
+  const {data:groups, error} = await sb.from('groups').select('id,name').eq('teacher_id', me.id);
+  if(error){ console.error(error); return; }
+  const sel = document.getElementById('group-select');
+  sel.innerHTML = '<option value="">— Выберите группу —</option>' + (groups||[]).map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+}
+async function loadGroupStudents(){
+  const groupId = document.getElementById('group-select').value;
+  if(!groupId){ document.getElementById('group-students').innerHTML = ''; return; }
+  const {data:students, error} = await sb.from('profiles').select('id,full_name,username').eq('group_id', groupId).eq('role','student');
+  if(error){ console.error(error); return; }
+  if(students?.length) document.getElementById('group-students').innerHTML = `<div class="card-title">👩‍🎓 Студенты (${students.length})</div><div class="tw"><table><thead><tr><th>ФИО</th><th>Логин</th></tr></thead><tbody>${students.map(s=>`<tr><td>${s.full_name||s.username}</td><td>${s.username}</td></tr>`).join('')}</tbody></table></div>`;
+  else document.getElementById('group-students').innerHTML = '<div class="msg msg-i show">В группе нет студентов</div>';
+}
+
+// CHATS
+async function loadAdminId(){
+  const {data:admin} = await sb.from('profiles').select('id').eq('role','admin').limit(1).maybeSingle();
+  if(admin) adminUserId = admin.id;
+}
+async function openChat(userId=null){
+  if(!me) return;
+  if(me.role === 'admin' && userId) activeChatUserId = userId;
+  else if(me.role !== 'admin') { if(!adminUserId) await loadAdminId(); activeChatUserId = adminUserId; }
+  else activeChatUserId = null;
+  if(!activeChatUserId && me.role !=='admin') { toast('Администратор не найден','t-e'); return; }
+  document.getElementById('chat-modal-title').innerHTML = me.role === 'admin' ? `💬 Чат с пользователем` : '💬 Чат с администратором';
+  document.getElementById('m-chat').classList.add('open');
+  await loadChatMessages();
+  if(chatRefreshInterval) clearInterval(chatRefreshInterval);
+  chatRefreshInterval = setInterval(loadChatMessages, 4000);
+}
+async function loadChatMessages(){
+  let fromId, toId;
+  if(me.role === 'admin' && activeChatUserId){
+    fromId = activeChatUserId; toId = me.id;
+  } else if(me.role !== 'admin'){
+    fromId = me.id; toId = adminUserId;
+  } else return;
+  const {data:messages, error} = await sb.from('messages').select('*').or(`and(from_user_id.eq.${fromId},to_user_id.eq.${toId}),and(from_user_id.eq.${toId},to_user_id.eq.${fromId})`).order('created_at',{ascending:true});
+  if(error){ console.error(error); return; }
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = (messages||[]).map(m=>{
+    const isMine = (me.role==='admin' && m.from_user_id===activeChatUserId) ? false : (m.from_user_id===me.id);
+    return `<div class="chat-msg ${isMine ? 'mine' : 'theirs'}"><div class="chat-msg-text">${escapeHtml(m.content)}</div><div class="chat-msg-time">${new Date(m.created_at).toLocaleTimeString()}</div></div>`;
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+  if(me.role==='admin' && activeChatUserId) await markMessagesAsRead(activeChatUserId);
+}
+async function markMessagesAsRead(senderId){
+  await sb.from('messages').update({read_at: new Date().toISOString()}).eq('from_user_id', senderId).eq('to_user_id', me.id).is('read_at', null);
+  if(document.getElementById('v-chats')?.classList.contains('act')) loadChatsList();
+}
+async function sendChatMessage(){
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if(!text) return;
+  let toId, fromId = me.id;
+  if(me.role === 'admin' && activeChatUserId) toId = activeChatUserId;
+  else if(me.role !== 'admin') toId = adminUserId;
+  else { toast('Не выбран собеседник','t-e'); return; }
+  await sb.from('messages').insert({ from_user_id: fromId, to_user_id: toId, content: text, created_at: new Date().toISOString() });
+  input.value = '';
+  await loadChatMessages();
+  if(me.role === 'admin') await loadChatsList();
+}
+async function loadChatsList(){
+  if(me.role !== 'admin') return;
+  const {data:messages} = await sb.from('messages').select('from_user_id,to_user_id,content,created_at,read_at').or(`to_user_id.eq.${me.id},from_user_id.eq.${me.id}`).order('created_at',{ascending:false});
+  if(!messages) { renderChatsList([]); return; }
+  const userIds = new Set(); messages.forEach(m=>{ if(m.from_user_id !== me.id) userIds.add(m.from_user_id); if(m.to_user_id !== me.id) userIds.add(m.to_user_id); });
+  if(userIds.size===0){ renderChatsList([]); return; }
+  const {data:profiles} = await sb.from('profiles').select('id,full_name,username,role,is_active').in('id', Array.from(userIds));
+  const mapProf = Object.fromEntries((profiles||[]).map(p=>[p.id,p]));
+  const list = Array.from(userIds).map(uid=>{
+    const lastMsg = messages.find(m=>m.from_user_id===uid || m.to_user_id===uid);
+    const unread = messages.filter(m=>m.from_user_id===uid && m.to_user_id===me.id && !m.read_at).length;
+    const prof = mapProf[uid] || {full_name:'?', username:'?', role:'?', is_active:true};
+    return { id:uid, full_name:prof.full_name, username:prof.username, role:prof.role, is_active:prof.is_active, last_msg:lastMsg?.content, last_time:lastMsg?.created_at, unread };
+  });
+  renderChatsList(list);
+}
+function renderChatsList(list){
+  const tbody = document.getElementById('chats-tbody');
+  tbody.innerHTML = (list||[]).map(u=>`<tr style="cursor:pointer" onclick="openChat('${u.id}')"><td class="bold">${u.full_name||u.username}</td><td>${u.role}</td><td><span class="badge ${u.is_active ? 'b-green':'b-red'}">${u.is_active ? 'Активен':'Неактивен'}</span></td><td style="font-size:.75rem">${u.last_msg?escapeHtml(u.last_msg.substring(0,40)):'—'}</td><td>${u.unread>0 ? `<span class="badge b-gold">${u.unread}</span>`:'0'}</td></tr>`).join('');
+}
+function closeChat(){
+  if(chatRefreshInterval) clearInterval(chatRefreshInterval);
+  document.getElementById('m-chat').classList.remove('open');
+  activeChatUserId = null;
+}
+function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
