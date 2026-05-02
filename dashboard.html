@@ -323,6 +323,9 @@ td.bold{color:var(--t1);font-weight:600;}
   <div class="nav-sec" style="display:none" id="teacher-sec">Мои группы</div>
   <div class="nav-item" style="display:none" id="teacher-groups" data-v="v-groups" onclick="nav('v-groups')"><span class="nav-icon">👥</span>Группы</div>
 
+  <div class="nav-sec" style="display:none" id="student-sec">Моя группа</div>
+  <div class="nav-item" style="display:none" id="student-group" data-v="v-my-group" onclick="nav('v-my-group')"><span class="nav-icon">👥</span>Группа</div>
+
   <div class="nav-sec adm">Управление</div>
   <div class="nav-item adm" data-v="v-policy" onclick="nav('v-policy')"><span class="nav-icon">🔐</span>Политика паролей</div>
   <div class="nav-item adm" data-v="v-users" onclick="nav('v-users')"><span class="nav-icon">👥</span>Пользователи</div>
@@ -503,6 +506,51 @@ td.bold{color:var(--t1);font-weight:600;}
       </div>
       
       <div id="group-students" style="margin-top:20px"></div>
+    </div>
+  </div>
+
+  <!-- MY GROUP (для student) -->
+  <div id="v-my-group" class="view">
+    <div class="pg-title">Моя группа</div>
+    
+    <!-- Если не в группе -->
+    <div class="card" id="student-no-group">
+      <div class="card-title">👥 Присоединиться к группе</div>
+      <p style="color:var(--t2);margin-bottom:20px">Введите 6-значный код, который дал преподаватель</p>
+      <div id="jg-msg2" class="msg"></div>
+      <div class="field" style="max-width:400px">
+        <label>Код доступа</label>
+        <input id="jg-code2" type="text" placeholder="ABC123" maxlength="6" style="text-transform:uppercase;font-family:monospace;font-size:1.1rem;letter-spacing:2px;text-align:center">
+      </div>
+      <button class="btn btn-p" onclick="joinGroup2()">Присоединиться</button>
+    </div>
+    
+    <!-- Если в группе -->
+    <div class="card" id="student-in-group" style="display:none">
+      <div class="card-title">👥 Информация о группе</div>
+      <table style="width:100%;border-collapse:collapse;max-width:560px">
+        <tbody>
+          <tr style="border-bottom:1px solid var(--b)">
+            <td style="padding:10px 0;color:var(--t3);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;width:140px">Группа</td>
+            <td style="padding:10px 0;color:var(--t1);font-size:.87rem" id="my-group-name">—</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--b)">
+            <td style="padding:10px 0;color:var(--t3);font-size:.72rem;font-weight:700;text-transform:uppercase">Преподаватель</td>
+            <td style="padding:10px 0;color:var(--t1);font-size:.87rem" id="my-group-teacher">—</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--b)">
+            <td style="padding:10px 0;color:var(--t3);font-size:.72rem;font-weight:700;text-transform:uppercase">Дата вступления</td>
+            <td style="padding:10px 0;color:var(--t1);font-size:.87rem" id="my-group-joined">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="btn btn-r" style="margin-top:16px" onclick="leaveGroup2()">Покинуть группу</button>
+    </div>
+    
+    <!-- Однокурсники -->
+    <div class="card" id="student-classmates" style="display:none">
+      <div class="card-title">👨‍🎓 Однокурсники</div>
+      <div id="classmates-list"></div>
     </div>
   </div>
 
@@ -694,6 +742,20 @@ function renderSidebar(){
   document.querySelectorAll('.adm').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
   });
+  
+  // Teacher sections
+  const isTeacher = me.role === 'teacher';
+  document.getElementById('teacher-sec').style.display = isTeacher ? '' : 'none';
+  document.getElementById('teacher-groups').style.display = isTeacher ? '' : 'none';
+  
+  // Student sections
+  const isStudent = me.role === 'student';
+  document.getElementById('student-sec').style.display = isStudent ? '' : 'none';
+  document.getElementById('student-group').style.display = isStudent ? '' : 'none';
+  
+  // Chat button (for teacher and student)
+  const showChat = isTeacher || isStudent;
+  document.getElementById('chat-btn').style.display = showChat ? '' : 'none';
 }
 
 // ═══════ NAV ═══════
@@ -707,6 +769,10 @@ function nav(id){
   if(id==='v-policy') loadPolicy();
   if(id==='v-users') loadUsers();
   if(id==='v-audit') loadAudit();
+  if(id==='v-groups') loadGroups();
+  if(id==='v-my-group') loadMyGroup();
+  if(id==='v-kb') loadKnowledgeBase();
+  if(id==='v-chats') loadAdminChats();
 }
 
 // ═══════ DASHBOARD ═══════
@@ -924,6 +990,206 @@ async function leaveGroup(groupId, groupName) {
   }).catch(() => {});
   
   loadStudentGroup();
+}
+
+// ═══════ MY GROUP VIEW (для студентов) ═══════
+async function loadMyGroup() {
+  if (me.role !== 'student') return;
+  
+  const { data, error } = await sb
+    .from('group_enrollments')
+    .select(`
+      *,
+      groups:group_id (
+        id,
+        name,
+        access_code,
+        teacher_id,
+        profiles:teacher_id (
+          full_name,
+          username
+        )
+      )
+    `)
+    .eq('student_id', me.id)
+    .maybeSingle();
+  
+  if (error) {
+    console.error('My group error:', error);
+    return;
+  }
+  
+  if (data && data.groups) {
+    // Студент в группе
+    document.getElementById('student-no-group').style.display = 'none';
+    document.getElementById('student-in-group').style.display = '';
+    document.getElementById('student-classmates').style.display = '';
+    
+    const group = data.groups;
+    const teacher = group.profiles;
+    const teacherName = teacher?.full_name || teacher?.username || 'Преподаватель';
+    
+    document.getElementById('my-group-name').textContent = group.name;
+    document.getElementById('my-group-teacher').textContent = teacherName;
+    document.getElementById('my-group-joined').textContent = fmtDate(data.enrolled_at);
+    
+    // Загружаем одногруппников
+    await loadClassmates(group.id);
+  } else {
+    // Студент не в группе
+    document.getElementById('student-no-group').style.display = '';
+    document.getElementById('student-in-group').style.display = 'none';
+    document.getElementById('student-classmates').style.display = 'none';
+  }
+}
+
+async function joinGroup2() {
+  const code = document.getElementById('jg-code2').value.trim().toUpperCase();
+  
+  if (!code || code.length !== 6) {
+    showMsgEl('jg-msg2', 'Введите 6-значный код', 'msg-e');
+    return;
+  }
+  
+  // Ищем группу по коду
+  const { data: group, error: groupError } = await sb
+    .from('groups')
+    .select('*')
+    .eq('access_code', code)
+    .eq('is_archived', false)
+    .maybeSingle();
+  
+  if (groupError || !group) {
+    showMsgEl('jg-msg2', 'Группа с таким кодом не найдена', 'msg-e');
+    return;
+  }
+  
+  // Проверяем не состоит ли уже в группе
+  const { data: existing } = await sb
+    .from('group_enrollments')
+    .select('*')
+    .eq('student_id', me.id)
+    .maybeSingle();
+  
+  if (existing) {
+    showMsgEl('jg-msg2', 'Вы уже состоите в группе. Сначала покиньте текущую группу.', 'msg-e');
+    return;
+  }
+  
+  // Присоединяемся к группе
+  const { error } = await sb
+    .from('group_enrollments')
+    .insert({
+      group_id: group.id,
+      student_id: me.id
+    });
+  
+  if (error) {
+    showMsgEl('jg-msg2', 'Ошибка: ' + error.message, 'msg-e');
+    return;
+  }
+  
+  showMsgEl('jg-msg2', `✅ Вы присоединились к группе "${group.name}"!`, 'msg-s');
+  
+  // Логируем
+  await sb.from('audit_logs').insert({
+    user_id: me.id,
+    username: me.username,
+    event_type: 'group_joined',
+    description: `Присоединился к группе "${group.name}"`,
+    status: 'success'
+  }).catch(() => {});
+  
+  // Обновляем отображение
+  setTimeout(() => loadMyGroup(), 1000);
+}
+
+async function loadClassmates(groupId) {
+  const { data, error } = await sb
+    .from('group_enrollments')
+    .select(`
+      student_id,
+      enrolled_at,
+      profiles:student_id (
+        id,
+        full_name,
+        username,
+        last_login
+      )
+    `)
+    .eq('group_id', groupId)
+    .neq('student_id', me.id);
+  
+  if (error) {
+    console.error('Classmates error:', error);
+    return;
+  }
+  
+  const classmates = data || [];
+  
+  if (classmates.length === 0) {
+    document.getElementById('classmates-list').innerHTML = '<p style="color:var(--t3);text-align:center;padding:20px">Пока нет других студентов в группе</p>';
+    return;
+  }
+  
+  const html = `
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>ФИО</th>
+            <th>Логин</th>
+            <th>Последний вход</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${classmates.map(c => {
+            const p = c.profiles;
+            return `
+              <tr>
+                <td class="bold">${p.full_name || p.username}</td>
+                <td style="font-family:monospace;font-size:.82rem">${p.username}</td>
+                <td>${p.last_login ? fmtDate(p.last_login) : '—'}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  document.getElementById('classmates-list').innerHTML = html;
+}
+
+async function leaveGroup2() {
+  const groupName = document.getElementById('my-group-name').textContent;
+  
+  if (!confirm(`Покинуть группу "${groupName}"?`)) {
+    return;
+  }
+  
+  const { error } = await sb
+    .from('group_enrollments')
+    .delete()
+    .eq('student_id', me.id);
+  
+  if (error) {
+    toast('Ошибка: ' + error.message, 't-e');
+    return;
+  }
+  
+  toast('Вы покинули группу', 't-s');
+  
+  // Логируем
+  await sb.from('audit_logs').insert({
+    user_id: me.id,
+    username: me.username,
+    event_type: 'group_left',
+    description: `Покинул группу "${groupName}"`,
+    status: 'success'
+  }).catch(() => {});
+  
+  loadMyGroup();
 }
 
 async function changePw(){
