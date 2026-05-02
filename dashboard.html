@@ -1360,6 +1360,20 @@ async function openAdminChat(sessionId) {
   
   chatSession = session;
   
+  // Если админ ещё не назначен в эту сессию, назначаем
+  if (!chatSession.admin_id) {
+    const { error } = await sb
+      .from('chat_sessions')
+      .update({ admin_id: me.id })
+      .eq('id', sessionId);
+    
+    if (error) {
+      console.error('Error assigning admin:', error);
+    } else {
+      chatSession.admin_id = me.id;
+    }
+  }
+  
   // Обновляем заголовок модалки с именем пользователя
   const userName = session.teacher_name || session.student_name || 'Пользователь';
   const userRole = session.teacher_id ? 'Преподаватель' : 'Студент';
