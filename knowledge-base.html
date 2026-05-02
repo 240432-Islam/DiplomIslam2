@@ -7,83 +7,79 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-shared.js"></script>
+<script src="js/knowledge-base.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;color:#e2e8f0;}
-.bg{position:fixed;inset:0;background:url('media/Fon.png') center/cover no-repeat;z-index:0;}
-.bg::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(6,8,15,.92) 0%,rgba(6,12,30,.88) 100%);}
-.page{position:relative;z-index:1;min-height:100vh;padding:24px;}
-.header{max-width:1200px;margin:0 auto 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
-.header-title{font-family:'Montserrat',sans-serif;font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#fff 0%,#bfdbfe 40%,#60a5fa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.btn{padding:10px 20px;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;}
-.btn-ghost{background:rgba(59,130,246,.08);color:#93c5fd;border:1.5px solid rgba(59,130,246,.15);}
-.btn-ghost:hover{background:rgba(59,130,246,.15);transform:translateY(-2px);}
-.container{max-width:1200px;margin:0 auto;}
-.kb-category{margin-bottom:48px;animation:fadeIn .5s ease-out;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.kb-category-title{font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
-.kb-category-icon{font-size:1.8rem;}
-.kb-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;}
-.kb-card{background:rgba(10,16,35,.75);backdrop-filter:blur(16px);border:1px solid rgba(59,130,246,.12);border-radius:12px;padding:24px;transition:all .3s;cursor:pointer;}
-.kb-card:hover{transform:translateY(-4px);border-color:rgba(59,130,246,.3);box-shadow:0 8px 24px rgba(0,0,0,.3);}
-.kb-card-title{font-size:1.1rem;font-weight:600;color:#fff;margin-bottom:12px;}
-.kb-card-content{font-size:.9rem;color:rgba(148,163,184,.85);line-height:1.6;}
-.loading{text-align:center;padding:60px 20px;color:rgba(148,163,184,.6);font-size:1rem;}
-.spin{display:inline-block;width:24px;height:24px;border:3px solid rgba(59,130,246,.2);border-top-color:#60a5fa;border-radius:50%;animation:sp .8s linear infinite;margin-right:12px;}
-@keyframes sp{to{transform:rotate(360deg)}}
+body{font-family:'Inter',sans-serif;background:#06080f;color:#e2e8f0;min-height:100vh;}
+:root{
+  --surf:#0d1424;--surf2:#121c31;
+  --b:rgba(59,130,246,.10);--b2:rgba(59,130,246,.18);
+  --ac:#3b82f6;--ac2:#60a5fa;--ac3:#93c5fd;
+  --t1:#e2e8f0;--t2:#7a99cc;--t3:#3d5480;
+}
+.header{background:var(--surf);border-bottom:1px solid var(--b);padding:20px 32px;}
+.back-btn{background:rgba(59,130,246,.1);border:1px solid var(--b2);border-radius:8px;padding:8px 16px;color:var(--ac2);cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;text-decoration:none;display:inline-block;margin-bottom:16px;}
+.back-btn:hover{background:rgba(59,130,246,.2);}
+.h-title{font-family:'Montserrat',sans-serif;font-size:1.8rem;font-weight:700;color:var(--t1);margin-bottom:8px;}
+.h-sub{color:var(--t2);font-size:.88rem;}
+.main{max-width:1200px;margin:0 auto;padding:32px;}
+.filters{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;}
+.kb-filter-btn{padding:10px 20px;background:var(--surf);border:1.5px solid var(--b);border-radius:8px;color:var(--t2);cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;}
+.kb-filter-btn:hover{border-color:var(--b2);color:var(--t1);}
+.kb-filter-btn.active{background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-color:transparent;}
+.kb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;}
+.kb-card{background:var(--surf);border:1px solid var(--b);border-radius:12px;padding:20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.kb-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--ac),var(--ac2));}
+.kb-card:hover{border-color:var(--b2);transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.kb-card-title{font-family:'Montserrat',sans-serif;font-size:1rem;font-weight:700;color:var(--t1);margin-bottom:10px;}
+.kb-card-preview{font-size:.82rem;color:var(--t2);line-height:1.6;margin-bottom:12px;}
+.kb-card-cat{font-size:.7rem;color:var(--ac2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.modal-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surf);border:1px solid var(--b2);border-radius:18px;width:100%;max-width:700px;padding:32px;box-shadow:0 24px 80px rgba(0,0,0,.6);max-height:80vh;overflow-y:auto;}
+.modal-title{font-family:'Montserrat',sans-serif;font-size:1.4rem;font-weight:700;color:var(--t1);margin-bottom:12px;}
+.modal-cat{font-size:.75rem;color:var(--ac2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:20px;}
+.modal-content{font-size:.9rem;color:var(--t1);line-height:1.8;}
+.modal-close{margin-top:24px;padding:10px 24px;background:var(--surf2);border:1.5px solid var(--b);border-radius:8px;color:var(--t2);cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;}
+.modal-close:hover{border-color:var(--b2);color:var(--t1);}
 </style>
 </head>
 <body>
-<div class="bg"></div>
-<div class="page">
-  <div class="header">
-    <div class="header-title">📚 База знаний</div>
-    <button class="btn btn-ghost" onclick="location.href='dashboard.html'">← Назад в кабинет</button>
+<div class="header">
+  <a href="dashboard.html" class="back-btn">← Назад в панель</a>
+  <div class="h-title">📚 База знаний</div>
+  <div class="h-sub">Справочная информация по информационной безопасности</div>
+</div>
+<div class="main">
+  <div class="filters">
+    <button class="kb-filter-btn active" onclick="filterKB('')">Все категории</button>
+    <button class="kb-filter-btn" onclick="filterKB('security_methods')">Методы защиты</button>
+    <button class="kb-filter-btn" onclick="filterKB('risk_matrix')">Матрица рисков</button>
+    <button class="kb-filter-btn" onclick="filterKB('technical_protection')">Технические средства</button>
+    <button class="kb-filter-btn" onclick="filterKB('incident_response')">Реагирование на инциденты</button>
   </div>
-  
-  <div class="container">
-    <div id="loading" class="loading">
-      <span class="spin"></span>Загрузка...
-    </div>
-    <div id="kb-content"></div>
+  <div class="kb-grid" id="kb-cards">
+    <div style="text-align:center;color:var(--t3);padding:40px;grid-column:1/-1">Загрузка...</div>
   </div>
 </div>
 
-<script type="module">
-import { getPublishedCards, groupCardsByCategory, renderCategory } from './js/knowledge-base.js';
+<!-- Modal -->
+<div class="modal-overlay" id="kb-modal">
+  <div class="modal">
+    <div class="modal-title" id="kb-modal-title">—</div>
+    <div class="modal-cat" id="kb-modal-cat">—</div>
+    <div class="modal-content" id="kb-modal-content">—</div>
+    <button class="modal-close" onclick="closeKBModal()">Закрыть</button>
+  </div>
+</div>
 
-async function loadKnowledgeBase() {
-  try {
-    const cards = await getPublishedCards();
-    const grouped = groupCardsByCategory(cards);
-    
-    const container = document.getElementById('kb-content');
-    const loading = document.getElementById('loading');
-    
-    loading.style.display = 'none';
-    
-    for (const [category, data] of Object.entries(grouped)) {
-      if (data.cards.length === 0) continue;
-      container.innerHTML += renderCategory(category, data);
-    }
-    
-    if (container.innerHTML === '') {
-      container.innerHTML = '<div class="loading">Нет доступных материалов</div>';
-    }
-  } catch (error) {
-    console.error('Error loading knowledge base:', error);
-    document.getElementById('loading').innerHTML = '❌ Ошибка загрузки. Попробуйте обновить страницу.';
-  }
+<script>
+async function init(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(!session){ location.href='login.html'; return; }
+  await loadKnowledgeBase();
 }
-
-// Проверка аутентификации
-sb.auth.getSession().then(({ data: { session } }) => {
-  if (!session) {
-    location.href = 'login.html';
-    return;
-  }
-  loadKnowledgeBase();
-});
+init();
 </script>
 </body>
 </html>

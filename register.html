@@ -191,6 +191,11 @@ function toggleAccessCode(){
   const isStudent=document.getElementById('role-student').checked;
   document.getElementById('access-code-field').style.display=isStudent?'block':'none';
 }
+
+// Обновление last_login при входе
+async function updateLastLogin(userId){
+  await sb.from('profiles').update({last_login: new Date().toISOString()}).eq('id', userId).then(()=>{}).catch(()=>{});
+}
 function copyVal(id){
   const v=document.getElementById(id).value;
   if(!v){showMsg('Сначала введите ФИО для генерации логина','error');return;}

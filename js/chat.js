@@ -1,62 +1,85 @@
 // ============================================================================
-// CHAT.JS - Модуль real-time чата
+// CHAT.JS - Модуль чата с администратором
 // ============================================================================
 
-import { sb } from '../supabase-shared.js';
-import { translateError, getCurrentUser, formatTime } from './utils.js';
+let chatSession = null;
+let chatSubscription = null;
+let currentUser = null;
 
-let messageSubscription = null;
-
-// Инициализация чата (teacher)
-export async function initChat() {
-    const user = await getCurrentUser();
-    if (!user) throw new Error('User not authenticated');
+// Инициализация чата
+export async function initChat(user) {
+    currentUser = user;
     
-    // Проверяем есть ли активная сессия
-    let { data: session } = await sb
+    if (user.role === 'teacher') {
+        await loadOrCreateTeacherSession();
+    } else if (user.role === 'admin') {
+        await loadAdminSessions();
+    }
+}
+
+// Загрузка или создание сессии для преподавателя
+async function loadOrCreateTeacherSession() {
+    // Ищем активную сессию
+    const { data: existing } = await sb
         .from('chat_sessions')
         .select('*')
-        .eq('teacher_id', user.id)
+        .eq('teacher_id', currentUser.id)
         .eq('status', 'active')
         .maybeSingle();
     
-    // Если нет, создаём новую
-    if (!session) {
-        const { data, error } = await sb
+    if (existing) {
+        chatSession = existing;
+    } else {
+        // Создаём новую сессию
+        const { data: newSession, error } = await sb
             .from('chat_sessions')
-            .insert({ teacher_id: user.id, status: 'active' })
+            .insert({
+                teacher_id: currentUser.id,
+                status: 'active'
+            })
             .select()
             .single();
         
-        if (error) throw new Error(translateError(error));
-        session = data;
+        if (error) {
+            console.error('Error creating chat session:', error);
+            return;
+        }
+        
+        chatSession = newSession;
     }
     
-    return session;
+    await loadMessages();
+    subscribeToMessages();
 }
 
-// Отправка сообщения
-export async function sendMessage(sessionId, text) {
-    const user = await getCurrentUser();
-    if (!user) throw new Error('User not authenticated');
+// Загрузка всех активных сессий для админа
+async function loadAdminSessions() {
+    const { data: sessions, error } = await sb
+        .from('chat_sessions')
+        .select(`
+            *,
+            teacher:profiles!chat_sessions_teacher_id_fkey(
+                id,
+                full_name,
+                username
+            )
+        `)
+        .eq('status', 'active')
+        .order('updated_at', { ascending: false });
     
-    const { data, error } = await sb
-        .from('chat_messages')
-        .insert({
-            session_id: sessionId,
-            sender_id: user.id,
-            message_text: text.trim()
-        })
-        .select()
-        .single();
+    if (error) {
+        console.error('Error loading sessions:', error);
+        return;
+    }
     
-    if (error) throw new Error(translateError(error));
-    return data;
+    return sessions || [];
 }
 
-// Загрузка истории сообщений
-export async function loadChatHistory(sessionId, limit = 50) {
-    const { data, error } = await sb
+// Загрузка сообщений
+async function loadMessages() {
+    if (!chatSession) return [];
+    
+    const { data: messages, error } = await sb
         .from('chat_messages')
         .select(`
             *,
@@ -66,150 +89,129 @@ export async function loadChatHistory(sessionId, limit = 50) {
                 username
             )
         `)
-        .eq('session_id', sessionId)
-        .order('created_at', { ascending: true })
-        .limit(limit);
+        .eq('session_id', chatSession.id)
+        .order('created_at', { ascending: true });
     
-    if (error) throw new Error(translateError(error));
-    return data || [];
-}
-
-// Подписка на новые сообщения
-export function subscribeToMessages(sessionId, callback) {
-    // Отписываемся от предыдущей подписки
-    if (messageSubscription) {
-        messageSubscription.unsubscribe();
+    if (error) {
+        console.error('Error loading messages:', error);
+        return [];
     }
     
-    messageSubscription = sb
-        .channel(`chat_${sessionId}`)
-        .on('postgres_changes',
-            {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'chat_messages',
-                filter: `session_id=eq.${sessionId}`
-            },
-            async (payload) => {
-                // Получаем информацию об отправителе
-                const { data: sender } = await sb
-                    .from('profiles')
-                    .select('id, full_name, username')
-                    .eq('id', payload.new.sender_id)
-                    .single();
-                
-                callback({
-                    ...payload.new,
-                    sender
-                });
-            }
-        )
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('Subscribed to chat messages');
-            } else if (status === 'CHANNEL_ERROR') {
-                console.error('Failed to subscribe to chat');
-            }
-        });
+    // Отмечаем сообщения как прочитанные
+    await markAsRead();
     
-    return messageSubscription;
+    return messages || [];
 }
 
-// Отписка от сообщений
-export function unsubscribeFromMessages() {
-    if (messageSubscription) {
-        messageSubscription.unsubscribe();
-        messageSubscription = null;
+// Отправка сообщения
+export async function sendMessage(text) {
+    if (!chatSession || !text.trim()) return null;
+    
+    const { data, error } = await sb
+        .from('chat_messages')
+        .insert({
+            session_id: chatSession.id,
+            sender_id: currentUser.id,
+            message_text: text.trim(),
+            is_read: false
+        })
+        .select()
+        .single();
+    
+    if (error) {
+        console.error('Error sending message:', error);
+        throw new Error('Ошибка отправки сообщения');
     }
+    
+    return data;
 }
 
-// Пометка сообщений как прочитанных
-export async function markAsRead(messageIds) {
-    if (!messageIds || messageIds.length === 0) return;
+// Отметить сообщения как прочитанные
+async function markAsRead() {
+    if (!chatSession) return;
     
-    const { error } = await sb
+    await sb
         .from('chat_messages')
         .update({ is_read: true })
-        .in('id', messageIds);
-    
-    if (error) throw new Error(translateError(error));
+        .eq('session_id', chatSession.id)
+        .neq('sender_id', currentUser.id);
 }
 
-// Получение активных сессий (для admin)
-export async function getActiveSessions() {
-    const { data, error } = await sb
-        .from('chat_sessions')
-        .select(`
-            *,
-            teacher:profiles!chat_sessions_teacher_id_fkey(
-                id,
-                full_name,
-                username
-            ),
-            unread_count:chat_messages(count)
-        `)
-        .eq('status', 'active')
-        .order('updated_at', { ascending: false });
+// Подписка на новые сообщения (realtime)
+function subscribeToMessages() {
+    if (!chatSession) return;
     
-    if (error) throw new Error(translateError(error));
-    return data || [];
+    chatSubscription = sb
+        .channel(`chat:${chatSession.id}`)
+        .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `session_id=eq.${chatSession.id}`
+        }, payload => {
+            // Обновляем UI при получении нового сообщения
+            if (window.onNewMessage) {
+                window.onNewMessage(payload.new);
+            }
+        })
+        .subscribe();
+}
+
+// Отписка от realtime
+export function unsubscribeChat() {
+    if (chatSubscription) {
+        chatSubscription.unsubscribe();
+        chatSubscription = null;
+    }
 }
 
 // Получение количества непрочитанных сообщений
-export async function getUnreadCount(sessionId) {
-    const user = await getCurrentUser();
-    if (!user) return 0;
+export async function getUnreadCount() {
+    if (!currentUser) return 0;
     
-    const { count, error } = await sb
-        .from('chat_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', sessionId)
-        .eq('is_read', false)
-        .neq('sender_id', user.id);
+    let query;
     
-    if (error) return 0;
+    if (currentUser.role === 'teacher') {
+        // Для преподавателя: непрочитанные сообщения в его активной сессии
+        const { data: session } = await sb
+            .from('chat_sessions')
+            .select('id')
+            .eq('teacher_id', currentUser.id)
+            .eq('status', 'active')
+            .maybeSingle();
+        
+        if (!session) return 0;
+        
+        query = sb
+            .from('chat_messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('session_id', session.id)
+            .eq('is_read', false)
+            .neq('sender_id', currentUser.id);
+    } else if (currentUser.role === 'admin') {
+        // Для админа: все непрочитанные сообщения во всех активных сессиях
+        query = sb
+            .from('chat_messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_read', false)
+            .neq('sender_id', currentUser.id);
+    } else {
+        return 0;
+    }
+    
+    const { count } = await query;
     return count || 0;
 }
 
-// Закрытие сессии чата
+// Закрытие сессии (для админа)
 export async function closeSession(sessionId) {
     const { error } = await sb
         .from('chat_sessions')
         .update({ status: 'closed' })
         .eq('id', sessionId);
     
-    if (error) throw new Error(translateError(error));
-}
-
-// Назначение админа на сессию
-export async function assignAdmin(sessionId, adminId) {
-    const { error } = await sb
-        .from('chat_sessions')
-        .update({ admin_id: adminId })
-        .eq('id', sessionId);
-    
-    if (error) throw new Error(translateError(error));
-}
-
-// Рендеринг сообщения в HTML
-export function renderMessage(message, currentUserId) {
-    const isMine = message.sender_id === currentUserId;
-    const time = formatTime(message.created_at);
-    
-    return `
-        <div class="message ${isMine ? 'message-mine' : 'message-other'}">
-            <div class="message-header">
-                <span class="message-sender">${message.sender?.full_name || 'Unknown'}</span>
-                <span class="message-time">${time}</span>
-            </div>
-            <div class="message-text">${escapeHtml(message.message_text)}</div>
-        </div>
-    `;
-}
-
-// Экранирование HTML для предотвращения XSS
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    if (error) {
+        console.error('Error closing session:', error);
+        throw new Error('Ошибка закрытия сессии');
+    }
 }
