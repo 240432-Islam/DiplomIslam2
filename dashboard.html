@@ -644,45 +644,71 @@ async function createUser(){
   const pw=document.getElementById('cu-pw').value;
   if(!fio||!uname||!pw){showMsgEl('cu-msg','Заполните все поля','msg-e');return;}
 
-  // Регистрация через signUp (не требует service_role)
-  // Временно выходим, регистрируем, возвращаемся
-  // Лучший вариант — отдельная форма или edge function
-  // Сейчас — регистрируем через auth.signUp без потери сессии
-
-  // Используем service_role клиент (sbSvc) — он имеет право создавать пользователей
-  const {data,error} = await sbSvc.auth.admin.createUser({
-    email: uname+'@turan.kz',
-    password: pw,
-    email_confirm: true,
-    user_metadata: {full_name:fio, username:uname, role, department:dept}
-  });
-
-  if(error){
-    showMsgEl('cu-msg','Ошибка: '+error.message,'msg-e');
+  // Сохраняем текущую сессию админа
+  const adminSession = await sb.auth.getSession();
+  const adminUser = adminSession.data.session?.user;
+  
+  if(!adminUser){
+    showMsgEl('cu-msg','Ошибка: сессия админа не найдена','msg-e');
     return;
   }
 
-  // Создаём профиль через security definer функцию (обходит RLS без рекурсии)
-  await sb.rpc('admin_create_profile', {
-    p_id: data.user.id,
-    p_full_name: fio,
-    p_username: uname,
-    p_role: role,
-    p_department: dept
-  }).then(()=>{}).catch(()=>{});
+  try {
+    // Создаём нового пользователя через signUp
+    const {data, error} = await sb.auth.signUp({
+      email: uname + '@turan.kz',
+      password: pw,
+      options: {
+        data: {
+          full_name: fio,
+          username: uname,
+          role: role,
+          department: dept
+        }
+      }
+    });
 
-  await sb.from('audit_logs').insert({
-    user_id:me.id, username:me.username,
-    event_type:'user_created', description:`Создан: ${uname} (${role})`, status:'success'
-  }).then(()=>{}).catch(()=>{});
+    if(error){
+      showMsgEl('cu-msg','Ошибка: '+error.message,'msg-e');
+      return;
+    }
 
-  document.getElementById('cu-r-login').textContent = uname;
-  document.getElementById('cu-r-pw').textContent = pw;
-  document.getElementById('cu-result').style.display = 'block';
-  document.getElementById('cu-btn').style.display = 'none';
-  showMsgEl('cu-msg','✅ Пользователь создан!','msg-s');
-  toast('Пользователь '+uname+' создан','t-s');
-  await loadUsers();
+    // Выходим из новой сессии и возвращаем админскую
+    await sb.auth.signOut();
+    await sb.auth.setSession({
+      access_token: adminSession.data.session.access_token,
+      refresh_token: adminSession.data.session.refresh_token
+    });
+
+    // Записываем в журнал
+    await sb.from('audit_logs').insert({
+      user_id: adminUser.id,
+      username: me.username,
+      event_type: 'user_created',
+      description: `Создан: ${uname} (${role})`,
+      status: 'success'
+    }).catch(()=>{});
+
+    // Показываем результат
+    document.getElementById('cu-r-login').textContent = uname;
+    document.getElementById('cu-r-pw').textContent = pw;
+    document.getElementById('cu-result').style.display = 'block';
+    document.getElementById('cu-btn').style.display = 'none';
+    showMsgEl('cu-msg','✅ Пользователь создан!','msg-s');
+    toast('Пользователь '+uname+' создан','t-s');
+    
+    // Обновляем список пользователей
+    await loadUsers();
+  } catch(e) {
+    showMsgEl('cu-msg','Ошибка: '+e.message,'msg-e');
+    // Восстанавливаем админскую сессию в случае ошибки
+    if(adminSession.data.session){
+      await sb.auth.setSession({
+        access_token: adminSession.data.session.access_token,
+        refresh_token: adminSession.data.session.refresh_token
+      }).catch(()=>{});
+    }
+  }
 }
 
 // ═══════ AUDIT ═══════
