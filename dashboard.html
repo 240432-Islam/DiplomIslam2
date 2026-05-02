@@ -1375,7 +1375,7 @@ async function deleteSelectedUsers() {
   
   const usernames = Array.from(checkboxes).map(cb => cb.dataset.username).join(', ');
   
-  if (!confirm(`Удалить выбранных пользователей (${checkboxes.length})?\n\n${usernames}\n\nЭто действие необратимо!`)) {
+  if (!confirm(`Удалить выбранных пользователей (${checkboxes.length})?\n\n${usernames}\n\nЭто действие необратимо! Пользователи будут удалены из системы полностью.`)) {
     return;
   }
   
@@ -1386,11 +1386,8 @@ async function deleteSelectedUsers() {
   
   for (const userId of userIds) {
     try {
-      // Удаляем из profiles (CASCADE удалит связанные данные)
-      const { error } = await sb
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
+      // Используем SQL функцию для удаления из auth.users
+      const { data, error } = await sb.rpc('delete_user_by_id', { target_user_id: userId });
       
       if (error) {
         console.error('Delete error:', error);
@@ -1418,7 +1415,7 @@ async function deleteSelectedUsers() {
     
     await loadUsers();
   } else {
-    toast('Не удалось удалить пользователей', 't-e');
+    toast(`Не удалось удалить пользователей${errors > 0 ? ` (ошибок: ${errors})` : ''}`, 't-e');
   }
 }
 
