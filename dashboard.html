@@ -331,7 +331,6 @@ td.bold{color:var(--t1);font-weight:600;}
   <div class="nav-item adm" data-v="v-users" onclick="nav('v-users')"><span class="nav-icon">👥</span>Пользователи</div>
   <div class="nav-item adm" data-v="v-audit" onclick="nav('v-audit')"><span class="nav-icon">📋</span>Журнал событий</div>
   <div class="nav-item adm" data-v="v-chats" onclick="nav('v-chats')"><span class="nav-icon">💬</span>Чаты</div>
-  <div class="nav-item adm" data-v="v-admin-tools" onclick="nav('v-admin-tools')"><span class="nav-icon">🛠️</span>Инструменты</div>
 
   <div class="sb-foot">
     <button class="btn btn-p btn-full btn-sm" onclick="openChat()" style="margin-bottom:10px;display:none" id="chat-btn">💬 Связаться с админом</button>
@@ -353,7 +352,10 @@ td.bold{color:var(--t1);font-weight:600;}
       <div class="stat"><div class="stat-icon">📋</div><div class="stat-val" id="s-events">—</div><div class="stat-lbl">Событий сегодня</div></div>
     </div>
     <div class="card">
-      <div class="card-title">🕐 Последние события</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="card-title" style="margin:0">🕐 Последние события</div>
+        <button class="btn btn-r btn-sm adm" onclick="clearAuditLogs()" style="padding:6px 12px">🗑️ Очистить логи</button>
+      </div>
       <div class="tw"><table><thead><tr><th>Время</th><th>Пользователь</th><th>Событие</th><th>Статус</th></tr></thead><tbody id="d-events"></tbody></table></div>
     </div>
   </div>
@@ -481,11 +483,11 @@ td.bold{color:var(--t1);font-weight:600;}
           <option value="success">Успех</option>
           <option value="error">Ошибка</option>
         </select>
-        <button class="btn btn-r btn-sm" onclick="clearAuditLogs()">🗑️ Очистить логи</button>
-      </div>
-        </select>
+        <button class="btn btn-r btn-sm adm" onclick="clearAuditLogs()">🗑️ Очистить все</button>
       </div>
       <div class="tw"><table><thead><tr><th>Время</th><th>Пользователь</th><th>Событие</th><th>Описание</th><th>Статус</th></tr></thead><tbody id="al-tbody"></tbody></table></div>
+    </div>
+  </div>
     </div>
   </div>
 
@@ -564,6 +566,10 @@ td.bold{color:var(--t1);font-weight:600;}
     <div class="pg-title">Чаты с пользователями</div>
     
     <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="card-title" style="margin:0">💬 Активные чаты</div>
+        <button class="btn btn-r btn-sm adm" onclick="clearAllChats()">🗑️ Очистить все чаты</button>
+      </div>
       <div class="tw">
         <table>
           <thead>
@@ -577,61 +583,6 @@ td.bold{color:var(--t1);font-weight:600;}
           </thead>
           <tbody id="chats-tbody"></tbody>
         </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- ADMIN TOOLS -->
-  <div id="v-admin-tools" class="view">
-    <div class="pg-title">🛠️ Инструменты администратора</div>
-    
-    <div class="card">
-      <div class="card-title">🗑️ Очистка данных</div>
-      <p style="color:var(--t3);margin-bottom:20px">Удаление данных из системы. Действия необратимы!</p>
-      
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
-        <div style="padding:16px;background:var(--surf);border:1px solid var(--b);border-radius:var(--rs)">
-          <div style="font-weight:600;margin-bottom:8px">📋 Журнал событий</div>
-          <p style="font-size:.82rem;color:var(--t3);margin-bottom:12px">Очистить все записи из audit_logs</p>
-          <button class="btn btn-r btn-sm" onclick="clearAuditLogs()">Очистить логи</button>
-        </div>
-        
-        <div style="padding:16px;background:var(--surf);border:1px solid var(--b);border-radius:var(--rs)">
-          <div style="font-weight:600;margin-bottom:8px">💬 Чаты</div>
-          <p style="font-size:.82rem;color:var(--t3);margin-bottom:12px">Удалить все чаты и сообщения</p>
-          <button class="btn btn-r btn-sm" onclick="clearAllChats()">Очистить чаты</button>
-        </div>
-        
-        <div style="padding:16px;background:var(--surf);border:1px solid var(--b);border-radius:var(--rs)">
-          <div style="font-weight:600;margin-bottom:8px">👥 Группы</div>
-          <p style="font-size:.82rem;color:var(--t3);margin-bottom:12px">Удалить все группы и записи студентов</p>
-          <button class="btn btn-r btn-sm" onclick="clearAllGroups()">Очистить группы</button>
-        </div>
-        
-        <div style="padding:16px;background:var(--surf);border:1px solid var(--b);border-radius:var(--rs)">
-          <div style="font-weight:600;margin-bottom:8px">👤 Пользователи</div>
-          <p style="font-size:.82rem;color:var(--t3);margin-bottom:12px">Массовое удаление пользователей</p>
-          <button class="btn btn-r btn-sm" onclick="openDeleteUsers()">Удалить пользователей</button>
-        </div>
-      </div>
-    </div>
-    
-    <div class="card">
-      <div class="card-title">🔑 Управление паролями</div>
-      <p style="color:var(--t3);margin-bottom:20px">Сброс паролей пользователей</p>
-      
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
-        <div style="padding:16px;background:var(--surf);border:1px solid var(--b);border-radius:var(--rs)">
-          <div style="font-weight:600;margin-bottom:8px">🔄 Сброс пароля</div>
-          <p style="font-size:.82rem;color:var(--t3);margin-bottom:12px">Сбросить пароль конкретного пользователя</p>
-          <button class="btn btn-p btn-sm" onclick="openResetPassword()">Сбросить пароль</button>
-        </div>
-        
-        <div style="padding:16px;background:var(--surf);border:1px solid var(--b);border-radius:var(--rs)">
-          <div style="font-weight:600;margin-bottom:8px">🔄 Массовый сброс</div>
-          <p style="font-size:.82rem;color:var(--t3);margin-bottom:12px">Сбросить пароли всех студентов/преподавателей</p>
-          <button class="btn btn-p btn-sm" onclick="openMassPasswordReset()">Массовый сброс</button>
-        </div>
       </div>
     </div>
   </div>
@@ -739,103 +690,6 @@ td.bold{color:var(--t1);font-weight:600;}
   </div>
 </div>
 
-<!-- Delete Users Modal -->
-<div class="modal-overlay" id="m-delete-users">
-  <div class="modal">
-    <div class="modal-title">🗑️ Удалить пользователей</div>
-    <div id="du-msg" class="msg"></div>
-    
-    <div class="field">
-      <label>Выберите роль для удаления</label>
-      <select id="du-role" class="fsel">
-        <option value="">— Выберите роль —</option>
-        <option value="student">Студенты</option>
-        <option value="teacher">Преподаватели</option>
-      </select>
-      <p style="font-size:.75rem;color:var(--t3);margin-top:6px">⚠️ Будут удалены ВСЕ пользователи выбранной роли!</p>
-    </div>
-    
-    <div class="modal-foot">
-      <button class="btn btn-g" onclick="closeModal('m-delete-users')">Отмена</button>
-      <button class="btn btn-r" onclick="deleteUsersByRole()">Удалить</button>
-    </div>
-  </div>
-</div>
-
-<!-- Reset Password Modal -->
-<div class="modal-overlay" id="m-reset-password">
-  <div class="modal">
-    <div class="modal-title">🔑 Сброс пароля</div>
-    <div id="rp-msg" class="msg"></div>
-    
-    <div class="field">
-      <label>Выберите пользователя</label>
-      <select id="rp-user" class="fsel">
-        <option value="">— Выберите пользователя —</option>
-      </select>
-    </div>
-    
-    <div class="field">
-      <label>Новый пароль (автогенерация)</label>
-      <div class="iw">
-        <input id="rp-pw" type="text" readonly style="padding-right:88px">
-        <button class="cp-btn" onclick="regenPasswordForReset()">⚡ Новый</button>
-      </div>
-    </div>
-    
-    <div id="rp-result" style="display:none">
-      <div class="creds">
-        <div class="creds-title">✅ Пароль сброшен</div>
-        <div class="cred-row">
-          <span class="cred-lbl">Логин:</span>
-          <span class="cred-val" id="rp-r-login">—</span>
-        </div>
-        <div class="cred-row">
-          <span class="cred-lbl">Новый пароль:</span>
-          <span class="cred-val" id="rp-r-pw">—</span>
-          <button class="cred-cp" onclick="cpText2('rp-r-pw')">📋</button>
-        </div>
-      </div>
-    </div>
-    
-    <div class="modal-foot">
-      <button class="btn btn-g" onclick="closeModal('m-reset-password')">Закрыть</button>
-      <button class="btn btn-p" id="rp-btn" onclick="resetUserPassword()">Сбросить пароль</button>
-    </div>
-  </div>
-</div>
-
-<!-- Mass Password Reset Modal -->
-<div class="modal-overlay" id="m-mass-reset">
-  <div class="modal">
-    <div class="modal-title">🔄 Массовый сброс паролей</div>
-    <div id="mr-msg" class="msg"></div>
-    
-    <div class="field">
-      <label>Выберите роль</label>
-      <select id="mr-role" class="fsel">
-        <option value="">— Выберите роль —</option>
-        <option value="student">Студенты</option>
-        <option value="teacher">Преподаватели</option>
-      </select>
-      <p style="font-size:.75rem;color:var(--t3);margin-top:6px">⚠️ Будут сброшены пароли ВСЕХ пользователей выбранной роли!</p>
-    </div>
-    
-    <div class="field">
-      <label>Новый пароль для всех (автогенерация)</label>
-      <div class="iw">
-        <input id="mr-pw" type="text" readonly style="padding-right:88px">
-        <button class="cp-btn" onclick="regenPasswordForMassReset()">⚡ Новый</button>
-      </div>
-    </div>
-    
-    <div class="modal-foot">
-      <button class="btn btn-g" onclick="closeModal('m-mass-reset')">Отмена</button>
-      <button class="btn btn-p" onclick="massResetPasswords()">Сбросить пароли</button>
-    </div>
-  </div>
-</div>
-
 <script>
 // ═══════ STATE ═══════
 let me = null;        // текущий профиль
@@ -930,7 +784,6 @@ function nav(id){
   if(id==='v-my-group') loadMyGroup();
   if(id==='v-kb') loadKnowledgeBase();
   if(id==='v-chats') loadAdminChats();
-  if(id==='v-admin-tools') {} // Статичная страница, ничего не загружаем
 }
 
 // ═══════ DASHBOARD ═══════
@@ -1702,19 +1555,21 @@ async function clearAllGroups() {
 }
 
 function openDeleteUsers() {
-  document.getElementById('du-role').value = '';
-  document.getElementById('du-msg').className = 'msg';
-  document.getElementById('m-delete-users').classList.add('open');
-}
-
-async function deleteUsersByRole() {
-  const role = document.getElementById('du-role').value;
-  
-  if (!role) {
-    showMsgEl('du-msg', 'Выберите роль', 'msg-e');
+  if (!confirm('Удалить ВСЕХ студентов или преподавателей?\n\nВыберите роль в следующем окне.')) {
     return;
   }
   
+  const role = prompt('Введите роль для удаления:\n- student (студенты)\n- teacher (преподаватели)');
+  
+  if (!role || (role !== 'student' && role !== 'teacher')) {
+    toast('Отменено или неверная роль', 't-e');
+    return;
+  }
+  
+  deleteUsersByRole(role);
+}
+
+async function deleteUsersByRole(role) {
   if (!confirm(`Удалить ВСЕХ пользователей с ролью "${role === 'student' ? 'Студент' : 'Преподаватель'}"?\n\nЭто действие необратимо!`)) {
     return;
   }
@@ -1726,158 +1581,34 @@ async function deleteUsersByRole() {
     .eq('role', role);
   
   if (!usersToDelete || usersToDelete.length === 0) {
-    showMsgEl('du-msg', 'Нет пользователей с такой ролью', 'msg-e');
+    toast('Нет пользователей с такой ролью', 't-e');
     return;
   }
   
-  // Удаляем из auth (это также удалит из profiles через CASCADE)
-  let deleted = 0;
-  for (const user of usersToDelete) {
-    try {
-      // Используем admin API для удаления пользователей
-      // Примечание: это требует admin права в Supabase
-      await sb.auth.admin.deleteUser(user.id);
-      deleted++;
-    } catch (e) {
-      console.error('Delete error:', e);
-    }
+  // Удаляем профили (это удалит связанные данные через CASCADE)
+  const { error } = await sb
+    .from('profiles')
+    .delete()
+    .eq('role', role)
+    .neq('id', me.id); // Не удаляем себя
+  
+  if (error) {
+    toast('Ошибка: ' + error.message, 't-e');
+    return;
   }
   
-  showMsgEl('du-msg', `✅ Удалено пользователей: ${deleted}`, 'msg-s');
-  toast(`Удалено пользователей: ${deleted}`, 't-s');
+  toast(`Удалено пользователей: ${usersToDelete.length}`, 't-s');
   
   // Логируем
   await sb.from('audit_logs').insert({
     user_id: me.id,
     username: me.username,
     event_type: 'users_deleted',
-    description: `Удалено ${deleted} пользователей (${role})`,
+    description: `Удалено ${usersToDelete.length} пользователей (${role})`,
     status: 'success'
   }).then(() => {}).catch(() => {});
   
   await loadUsers();
-  setTimeout(() => closeModal('m-delete-users'), 2000);
-}
-
-function openResetPassword() {
-  document.getElementById('rp-user').innerHTML = '<option value="">— Выберите пользователя —</option>' +
-    users.filter(u => u.role !== 'admin').map(u => 
-      `<option value="${u.id}">${u.full_name || u.username} (${u.username})</option>`
-    ).join('');
-  
-  regenPasswordForReset();
-  document.getElementById('rp-msg').className = 'msg';
-  document.getElementById('rp-result').style.display = 'none';
-  document.getElementById('rp-btn').style.display = '';
-  document.getElementById('m-reset-password').classList.add('open');
-}
-
-function regenPasswordForReset() {
-  const U='ABCDEFGHIJKLMNOPQRSTUVWXYZ',L='abcdefghijklmnopqrstuvwxyz',N='0123456789',S='!@#$%^&*';
-  const rc=s=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return s[a[0]%s.length];};
-  const sh=s=>{const a=[...s];for(let i=a.length-1;i>0;i--){const r=new Uint32Array(1);crypto.getRandomValues(r);const j=r[0]%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a.join('');};
-  let pw=rc(U)+rc(L)+rc(N)+rc(S);
-  for(let i=4;i<14;i++) pw+=rc(U+L+N+S);
-  document.getElementById('rp-pw').value=sh(pw);
-}
-
-async function resetUserPassword() {
-  const userId = document.getElementById('rp-user').value;
-  const newPw = document.getElementById('rp-pw').value;
-  
-  if (!userId) {
-    showMsgEl('rp-msg', 'Выберите пользователя', 'msg-e');
-    return;
-  }
-  
-  const user = users.find(u => u.id === userId);
-  if (!user) {
-    showMsgEl('rp-msg', 'Пользователь не найден', 'msg-e');
-    return;
-  }
-  
-  try {
-    // Используем admin API для сброса пароля
-    await sb.auth.admin.updateUserById(userId, { password: newPw });
-    
-    document.getElementById('rp-r-login').textContent = user.username;
-    document.getElementById('rp-r-pw').textContent = newPw;
-    document.getElementById('rp-result').style.display = 'block';
-    document.getElementById('rp-btn').style.display = 'none';
-    showMsgEl('rp-msg', '✅ Пароль сброшен!', 'msg-s');
-    
-    // Логируем
-    await sb.from('audit_logs').insert({
-      user_id: me.id,
-      username: me.username,
-      event_type: 'password_reset',
-      description: `Сброшен пароль для ${user.username}`,
-      status: 'success'
-    }).then(() => {}).catch(() => {});
-  } catch (e) {
-    showMsgEl('rp-msg', 'Ошибка: ' + e.message, 'msg-e');
-  }
-}
-
-function openMassPasswordReset() {
-  document.getElementById('mr-role').value = '';
-  regenPasswordForMassReset();
-  document.getElementById('mr-msg').className = 'msg';
-  document.getElementById('m-mass-reset').classList.add('open');
-}
-
-function regenPasswordForMassReset() {
-  const U='ABCDEFGHIJKLMNOPQRSTUVWXYZ',L='abcdefghijklmnopqrstuvwxyz',N='0123456789',S='!@#$%^&*';
-  const rc=s=>{const a=new Uint32Array(1);crypto.getRandomValues(a);return s[a[0]%s.length];};
-  const sh=s=>{const a=[...s];for(let i=a.length-1;i>0;i--){const r=new Uint32Array(1);crypto.getRandomValues(r);const j=r[0]%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a.join('');};
-  let pw=rc(U)+rc(L)+rc(N)+rc(S);
-  for(let i=4;i<14;i++) pw+=rc(U+L+N+S);
-  document.getElementById('mr-pw').value=sh(pw);
-}
-
-async function massResetPasswords() {
-  const role = document.getElementById('mr-role').value;
-  const newPw = document.getElementById('mr-pw').value;
-  
-  if (!role) {
-    showMsgEl('mr-msg', 'Выберите роль', 'msg-e');
-    return;
-  }
-  
-  if (!confirm(`Сбросить пароли ВСЕХ пользователей с ролью "${role === 'student' ? 'Студент' : 'Преподаватель'}"?\n\nНовый пароль: ${newPw}`)) {
-    return;
-  }
-  
-  const usersToReset = users.filter(u => u.role === role);
-  
-  if (usersToReset.length === 0) {
-    showMsgEl('mr-msg', 'Нет пользователей с такой ролью', 'msg-e');
-    return;
-  }
-  
-  let reset = 0;
-  for (const user of usersToReset) {
-    try {
-      await sb.auth.admin.updateUserById(user.id, { password: newPw });
-      reset++;
-    } catch (e) {
-      console.error('Reset error:', e);
-    }
-  }
-  
-  showMsgEl('mr-msg', `✅ Сброшено паролей: ${reset}\nНовый пароль: ${newPw}`, 'msg-s');
-  toast(`Сброшено паролей: ${reset}`, 't-s');
-  
-  // Логируем
-  await sb.from('audit_logs').insert({
-    user_id: me.id,
-    username: me.username,
-    event_type: 'mass_password_reset',
-    description: `Массовый сброс паролей для ${reset} пользователей (${role})`,
-    status: 'success'
-  }).then(() => {}).catch(() => {});
-  
-  setTimeout(() => closeModal('m-mass-reset'), 3000);
 }
 
 // ═══════ СПРАВОЧНАЯ (Knowledge Base) ═══════
