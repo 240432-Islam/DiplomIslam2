@@ -361,6 +361,25 @@ td.bold{color:var(--t1);font-weight:600;}
       <div class="card-title">👤 Информация</div>
       <table style="width:100%;border-collapse:collapse"><tbody id="pr-rows"></tbody></table>
     </div>
+    
+    <!-- Для студентов: присоединение к группе -->
+    <div class="card" style="max-width:560px;display:none" id="student-join-group">
+      <div class="card-title">👥 Присоединиться к группе</div>
+      <div id="jg-msg" class="msg"></div>
+      <div class="field">
+        <label>Код доступа</label>
+        <input id="jg-code" type="text" placeholder="ABC123" maxlength="6" style="text-transform:uppercase;font-family:monospace;font-size:1.1rem;letter-spacing:2px;text-align:center">
+        <p style="font-size:.75rem;color:var(--t3);margin-top:6px">Введите 6-значный код, который дал преподаватель</p>
+      </div>
+      <button class="btn btn-p" onclick="joinGroup()">Присоединиться</button>
+    </div>
+    
+    <!-- Для студентов: моя группа -->
+    <div class="card" style="max-width:560px;display:none" id="student-my-group">
+      <div class="card-title">👥 Моя группа</div>
+      <div id="my-group-info"></div>
+    </div>
+    
     <div class="card" style="max-width:560px">
       <div class="card-title">🔑 Изменить пароль</div>
       <div id="chpw-msg" class="msg"></div>
@@ -467,6 +486,15 @@ td.bold{color:var(--t1);font-weight:600;}
     <div class="pg-title">Мои группы</div>
     
     <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div class="card-title" style="margin:0">Список групп</div>
+        <button class="btn btn-p btn-sm" onclick="openCreateGroup()">➕ Создать группу</button>
+      </div>
+      
+      <div id="groups-list"></div>
+    </div>
+    
+    <div class="card" id="group-students-card" style="display:none">
       <div class="field" style="max-width:400px">
         <label>Выбрать группу</label>
         <select id="group-select" onchange="loadGroupStudents()" class="fsel" style="width:100%">
@@ -538,6 +566,49 @@ td.bold{color:var(--t1);font-weight:600;}
     <div id="kb-modal-content" style="color:var(--t2);font-size:.88rem;line-height:1.7;max-height:60vh;overflow-y:auto"></div>
     <div class="modal-foot">
       <button class="btn btn-g" onclick="closeModal('m-kb')">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Group Modal -->
+<div class="modal-overlay" id="m-create-group">
+  <div class="modal">
+    <div class="modal-title">➕ Создать группу</div>
+    <div id="cg-msg" class="msg"></div>
+    
+    <div class="field">
+      <label>Название группы</label>
+      <input id="cg-name" type="text" placeholder="Группа 1А" maxlength="50">
+    </div>
+    
+    <div class="field">
+      <label>Код доступа (автогенерация)</label>
+      <div class="iw">
+        <input id="cg-code" type="text" readonly style="padding-right:88px;font-family:monospace;font-size:1.1rem;letter-spacing:2px;text-align:center">
+        <button class="cp-btn" onclick="regenGroupCode()">⚡ Новый</button>
+      </div>
+      <p style="font-size:.75rem;color:var(--t3);margin-top:6px">Студенты будут использовать этот код для входа в группу</p>
+    </div>
+    
+    <div id="cg-result" style="display:none">
+      <div class="creds">
+        <div class="creds-title">🎉 Группа создана!</div>
+        <div class="cred-row">
+          <span class="cred-lbl">Название:</span>
+          <span class="cred-val" id="cg-r-name">—</span>
+        </div>
+        <div class="cred-row">
+          <span class="cred-lbl">Код:</span>
+          <span class="cred-val" id="cg-r-code" style="font-family:monospace;font-size:1.1rem;letter-spacing:2px">—</span>
+          <button class="cred-cp" onclick="cpText2('cg-r-code')">📋</button>
+        </div>
+        <p style="color:var(--t3);font-size:.72rem;margin-top:8px">✅ Скопируйте код и отправьте студентам</p>
+      </div>
+    </div>
+    
+    <div class="modal-foot">
+      <button class="btn btn-g" onclick="closeModal('m-create-group')">Закрыть</button>
+      <button class="btn btn-p" id="cg-btn" onclick="createGroup()">Создать</button>
     </div>
   </div>
 </div>
@@ -698,6 +769,161 @@ function loadProfile(){
       <td style="padding:10px 0;color:var(--t3);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;width:140px">${k}</td>
       <td style="padding:10px 0;color:var(--t1);font-size:.87rem">${v}</td>
     </tr>`).join('');
+  
+  // Для студентов: показываем секцию присоединения к группе
+  if (me.role === 'student') {
+    loadStudentGroup();
+  }
+}
+
+async function loadStudentGroup() {
+  const { data, error } = await sb
+    .from('group_enrollments')
+    .select(`
+      *,
+      groups:group_id (
+        id,
+        name,
+        access_code,
+        teacher_id,
+        profiles:teacher_id (
+          full_name,
+          username
+        )
+      )
+    `)
+    .eq('student_id', me.id)
+    .maybeSingle();
+  
+  if (error) {
+    console.error('Student group error:', error);
+    return;
+  }
+  
+  if (data && data.groups) {
+    // Студент уже в группе
+    document.getElementById('student-join-group').style.display = 'none';
+    document.getElementById('student-my-group').style.display = '';
+    
+    const group = data.groups;
+    const teacher = group.profiles;
+    const teacherName = teacher?.full_name || teacher?.username || 'Преподаватель';
+    
+    document.getElementById('my-group-info').innerHTML = `
+      <table style="width:100%;border-collapse:collapse">
+        <tbody>
+          <tr style="border-bottom:1px solid var(--b)">
+            <td style="padding:10px 0;color:var(--t3);font-size:.72rem;font-weight:700;text-transform:uppercase;width:140px">Группа</td>
+            <td style="padding:10px 0;color:var(--t1);font-size:.87rem">${group.name}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--b)">
+            <td style="padding:10px 0;color:var(--t3);font-size:.72rem;font-weight:700;text-transform:uppercase">Преподаватель</td>
+            <td style="padding:10px 0;color:var(--t1);font-size:.87rem">${teacherName}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--b)">
+            <td style="padding:10px 0;color:var(--t3);font-size:.72rem;font-weight:700;text-transform:uppercase">Дата вступления</td>
+            <td style="padding:10px 0;color:var(--t1);font-size:.87rem">${fmtDate(data.enrolled_at)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="btn btn-r" style="margin-top:16px" onclick="leaveGroup('${group.id}', '${group.name}')">Покинуть группу</button>
+    `;
+  } else {
+    // Студент не в группе
+    document.getElementById('student-join-group').style.display = '';
+    document.getElementById('student-my-group').style.display = 'none';
+  }
+}
+
+async function joinGroup() {
+  const code = document.getElementById('jg-code').value.trim().toUpperCase();
+  
+  if (!code || code.length !== 6) {
+    showMsgEl('jg-msg', 'Введите 6-значный код', 'msg-e');
+    return;
+  }
+  
+  // Ищем группу по коду
+  const { data: group, error: groupError } = await sb
+    .from('groups')
+    .select('*')
+    .eq('access_code', code)
+    .eq('is_archived', false)
+    .maybeSingle();
+  
+  if (groupError || !group) {
+    showMsgEl('jg-msg', 'Группа с таким кодом не найдена', 'msg-e');
+    return;
+  }
+  
+  // Проверяем не состоит ли уже в группе
+  const { data: existing } = await sb
+    .from('group_enrollments')
+    .select('*')
+    .eq('student_id', me.id)
+    .maybeSingle();
+  
+  if (existing) {
+    showMsgEl('jg-msg', 'Вы уже состоите в группе. Сначала покиньте текущую группу.', 'msg-e');
+    return;
+  }
+  
+  // Присоединяемся к группе
+  const { error } = await sb
+    .from('group_enrollments')
+    .insert({
+      group_id: group.id,
+      student_id: me.id
+    });
+  
+  if (error) {
+    showMsgEl('jg-msg', 'Ошибка: ' + error.message, 'msg-e');
+    return;
+  }
+  
+  showMsgEl('jg-msg', `✅ Вы присоединились к группе "${group.name}"!`, 'msg-s');
+  
+  // Логируем
+  await sb.from('audit_logs').insert({
+    user_id: me.id,
+    username: me.username,
+    event_type: 'group_joined',
+    description: `Присоединился к группе "${group.name}"`,
+    status: 'success'
+  }).catch(() => {});
+  
+  // Обновляем отображение
+  setTimeout(() => loadStudentGroup(), 1000);
+}
+
+async function leaveGroup(groupId, groupName) {
+  if (!confirm(`Покинуть группу "${groupName}"?`)) {
+    return;
+  }
+  
+  const { error } = await sb
+    .from('group_enrollments')
+    .delete()
+    .eq('student_id', me.id)
+    .eq('group_id', groupId);
+  
+  if (error) {
+    toast('Ошибка: ' + error.message, 't-e');
+    return;
+  }
+  
+  toast('Вы покинули группу', 't-s');
+  
+  // Логируем
+  await sb.from('audit_logs').insert({
+    user_id: me.id,
+    username: me.username,
+    event_type: 'group_left',
+    description: `Покинул группу "${groupName}"`,
+    status: 'success'
+  }).catch(() => {});
+  
+  loadStudentGroup();
 }
 
 async function changePw(){
@@ -1061,7 +1287,10 @@ async function loadGroups() {
   
   const { data, error } = await sb
     .from('groups')
-    .select('*')
+    .select(`
+      *,
+      enrollments:group_enrollments(count)
+    `)
     .eq('teacher_id', me.id)
     .eq('is_archived', false)
     .order('created_at', { ascending: false });
@@ -1072,7 +1301,55 @@ async function loadGroups() {
   }
   
   groups = data || [];
+  renderGroupsList();
   renderGroupsDropdown();
+}
+
+function renderGroupsList() {
+  const container = document.getElementById('groups-list');
+  if (!container) return;
+  
+  if (groups.length === 0) {
+    container.innerHTML = '<p style="color:var(--t3);text-align:center;padding:40px">У вас пока нет групп. Создайте первую группу!</p>';
+    document.getElementById('group-students-card').style.display = 'none';
+    return;
+  }
+  
+  document.getElementById('group-students-card').style.display = '';
+  
+  const html = `
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Код доступа</th>
+            <th>Студентов</th>
+            <th>Создана</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${groups.map(g => `
+            <tr>
+              <td class="bold">${g.name}</td>
+              <td>
+                <span style="font-family:monospace;font-size:.95rem;letter-spacing:1px;color:var(--ac2)">${g.access_code}</span>
+                <button class="btn btn-sm" style="padding:3px 8px;margin-left:8px" onclick="copyGroupCode('${g.access_code}')">📋</button>
+              </td>
+              <td>${g.enrollments?.[0]?.count || 0}</td>
+              <td>${fmtDate(g.created_at)}</td>
+              <td>
+                <button class="btn btn-sm btn-r" onclick="deleteGroup('${g.id}', '${g.name}')">🗑️</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  container.innerHTML = html;
 }
 
 function renderGroupsDropdown() {
@@ -1080,9 +1357,121 @@ function renderGroupsDropdown() {
   if (!select) return;
   
   const html = '<option value="">— Выберите группу —</option>' + 
-    groups.map(g => `<option value="${g.id}">${g.name} (${g.access_code || 'без кода'})</option>`).join('');
+    groups.map(g => `<option value="${g.id}">${g.name} (${g.access_code})</option>`).join('');
   
   select.innerHTML = html;
+}
+
+function openCreateGroup() {
+  document.getElementById('cg-name').value = '';
+  regenGroupCode();
+  document.getElementById('cg-result').style.display = 'none';
+  document.getElementById('cg-btn').style.display = '';
+  document.getElementById('cg-msg').className = 'msg';
+  document.getElementById('m-create-group').classList.add('open');
+  document.getElementById('cg-name').focus();
+}
+
+function regenGroupCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Без похожих символов
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    code += chars[arr[0] % chars.length];
+  }
+  document.getElementById('cg-code').value = code;
+}
+
+async function createGroup() {
+  const name = document.getElementById('cg-name').value.trim();
+  const code = document.getElementById('cg-code').value;
+  
+  if (!name) {
+    showMsgEl('cg-msg', 'Введите название группы', 'msg-e');
+    return;
+  }
+  
+  document.getElementById('cg-btn').disabled = true;
+  document.getElementById('cg-btn').textContent = 'Создание...';
+  
+  const { data, error } = await sb
+    .from('groups')
+    .insert({
+      name: name,
+      access_code: code,
+      teacher_id: me.id,
+      is_archived: false
+    })
+    .select()
+    .single();
+  
+  document.getElementById('cg-btn').disabled = false;
+  document.getElementById('cg-btn').textContent = 'Создать';
+  
+  if (error) {
+    if (error.message.includes('duplicate') || error.code === '23505') {
+      showMsgEl('cg-msg', 'Код уже используется. Сгенерируйте новый.', 'msg-e');
+      regenGroupCode();
+    } else {
+      showMsgEl('cg-msg', 'Ошибка: ' + error.message, 'msg-e');
+    }
+    return;
+  }
+  
+  // Показываем результат
+  document.getElementById('cg-r-name').textContent = name;
+  document.getElementById('cg-r-code').textContent = code;
+  document.getElementById('cg-result').style.display = 'block';
+  document.getElementById('cg-btn').style.display = 'none';
+  showMsgEl('cg-msg', '✅ Группа создана!', 'msg-s');
+  
+  // Обновляем список
+  await loadGroups();
+  
+  // Логируем
+  await sb.from('audit_logs').insert({
+    user_id: me.id,
+    username: me.username,
+    event_type: 'group_created',
+    description: `Создана группа "${name}"`,
+    status: 'success'
+  }).catch(() => {});
+}
+
+function copyGroupCode(code) {
+  navigator.clipboard.writeText(code).then(() => {
+    toast('Код скопирован: ' + code, 't-s');
+  });
+}
+
+async function deleteGroup(id, name) {
+  if (!confirm(`Удалить группу "${name}"?\n\nВсе студенты будут отчислены из группы.`)) {
+    return;
+  }
+  
+  // Сначала удаляем всех студентов из группы
+  await sb.from('group_enrollments').delete().eq('group_id', id);
+  
+  // Затем удаляем группу
+  const { error } = await sb.from('groups').delete().eq('id', id);
+  
+  if (error) {
+    toast('Ошибка удаления: ' + error.message, 't-e');
+    return;
+  }
+  
+  toast('Группа удалена', 't-s');
+  await loadGroups();
+  
+  // Логируем
+  await sb.from('audit_logs').insert({
+    user_id: me.id,
+    username: me.username,
+    event_type: 'group_deleted',
+    description: `Удалена группа "${name}"`,
+    status: 'success'
+  }).catch(() => {});
 }
 
 async function loadGroupStudents() {
