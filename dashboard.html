@@ -170,7 +170,6 @@ td.bold{color:var(--t1);font-weight:600;}
 
 /* SIDEBAR HIDDEN */
 .adm{} 
-.teacher-only{}
 
 @media(max-width:768px){
   .sidebar{width:100%;height:auto;position:relative;}
@@ -203,8 +202,6 @@ td.bold{color:var(--t1);font-weight:600;}
   <div class="nav-sec">Основное</div>
   <div class="nav-item act" data-v="v-dash" onclick="nav('v-dash')"><span class="nav-icon">📊</span>Дашборд</div>
   <div class="nav-item" data-v="v-profile" onclick="nav('v-profile')"><span class="nav-icon">👤</span>Профиль</div>
-  <div class="nav-item" onclick="location.href='knowledge-base.html'"><span class="nav-icon">📚</span>База знаний</div>
-  <div class="nav-item teacher-only" onclick="location.href='chat.html'" id="chat-nav"><span class="nav-icon">💬</span>Чат с админом</div>
 
   <div class="nav-sec adm">Управление</div>
   <div class="nav-item adm" data-v="v-policy" onclick="nav('v-policy')"><span class="nav-icon">🔐</span>Политика паролей</div>
@@ -418,12 +415,6 @@ function renderSidebar(){
   const isAdmin = me.role === 'admin';
   document.querySelectorAll('.adm').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
-  });
-
-  // Teacher-only sections (чат с админом)
-  const isTeacher = me.role === 'teacher';
-  document.querySelectorAll('.teacher-only').forEach(el => {
-    el.style.display = isTeacher ? '' : 'none';
   });
 }
 

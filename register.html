@@ -95,24 +95,6 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
       </div>
     </div>
     <div class="field">
-      <label>Роль</label>
-      <div style="display:flex;gap:12px;margin-top:8px;">
-        <label style="flex:1;display:flex;align-items:center;padding:12px;background:rgba(15,23,42,.8);border:1.5px solid rgba(59,130,246,.15);border-radius:10px;cursor:pointer;transition:all .2s;" onclick="selectRole('student')">
-          <input type="radio" name="role" value="student" id="role-student" style="margin-right:10px;" onchange="toggleAccessCode()">
-          <span style="color:#e2e8f0;font-size:.9rem;">Студент</span>
-        </label>
-        <label style="flex:1;display:flex;align-items:center;padding:12px;background:rgba(15,23,42,.8);border:1.5px solid rgba(59,130,246,.15);border-radius:10px;cursor:pointer;transition:all .2s;" onclick="selectRole('teacher')">
-          <input type="radio" name="role" value="teacher" id="role-teacher" checked style="margin-right:10px;" onchange="toggleAccessCode()">
-          <span style="color:#e2e8f0;font-size:.9rem;">Преподаватель</span>
-        </label>
-      </div>
-    </div>
-    <div class="field" id="access-code-field" style="display:none;">
-      <label>Код доступа к группе (опционально)</label>
-      <input id="access-code" type="text" placeholder="ABC123" maxlength="6" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
-      <div style="font-size:.72rem;color:rgba(148,163,184,.5);margin-top:6px;">Введите код, полученный от преподавателя, или оставьте пустым</div>
-    </div>
-    <div class="field">
       <label>Отдел / Должность</label>
       <input id="dept" type="text" placeholder="Кафедра информатики">
     </div>
@@ -183,19 +165,6 @@ function toggleEye(id,btn){
   el.type=el.type==='password'?'text':'password';
   btn.textContent=el.type==='password'?'👁':'🙈';
 }
-function selectRole(role){
-  document.getElementById('role-'+role).checked=true;
-  toggleAccessCode();
-}
-function toggleAccessCode(){
-  const isStudent=document.getElementById('role-student').checked;
-  document.getElementById('access-code-field').style.display=isStudent?'block':'none';
-}
-
-// Обновление last_login при входе
-async function updateLastLogin(userId){
-  await sb.from('profiles').update({last_login: new Date().toISOString()}).eq('id', userId).then(()=>{}).catch(()=>{});
-}
 function copyVal(id){
   const v=document.getElementById(id).value;
   if(!v){showMsg('Сначала введите ФИО для генерации логина','error');return;}
@@ -221,8 +190,6 @@ async function doRegister(){
   const dept=document.getElementById('dept').value.trim();
   const pw=document.getElementById('password').value;
   const confirm=document.getElementById('confirm').value;
-  const role=document.querySelector('input[name="role"]:checked').value;
-  const accessCode=document.getElementById('access-code').value.trim().toUpperCase();
 
   if(!fullname||!username){showMsg('Введите ФИО для генерации логина','error');return;}
   if(!pw){showMsg('Введите пароль','error');return;}
@@ -242,7 +209,7 @@ async function doRegister(){
         data: {
           full_name: fullname,
           username: username,
-          role: role,
+          role: 'teacher',
           department: dept
         }
       }
@@ -289,27 +256,9 @@ async function doRegister(){
       user_id: data.user.id,
       username,
       event_type: 'register',
-      description: `Регистрация нового пользователя (${role})`,
+      description: 'Регистрация нового пользователя',
       status: 'success'
     }).catch(()=>{});
-
-    // Если студент и указан код доступа, записываем в группу
-    if(role === 'student' && accessCode){
-      try {
-        const enrollResult = await sb.rpc('enroll_student_in_group', {
-          p_access_code: accessCode,
-          p_student_id: data.user.id
-        });
-        
-        if(!enrollResult.data?.success){
-          showMsg('⚠️ Регистрация успешна, но код доступа неверный. Вы можете ввести код позже в личном кабинете.', 'warn');
-          setTimeout(()=>location.href='dashboard.html', 2500);
-          return;
-        }
-      } catch(e) {
-        console.error('Enrollment error:', e);
-      }
-    }
 
     showMsg('✅ Регистрация успешна! Переходим...', 'success');
     setTimeout(()=>location.href='dashboard.html', 1200);
@@ -317,14 +266,18 @@ async function doRegister(){
   }
 
   // Случай 2: user есть, сессии нет — "Confirm email" включён ИЛИ пользователь уже существует
+  // Supabase не раскрывает разницу между "уже зарегистрирован" и "ждёт подтверждения"
+  // по соображениям безопасности (anti-enumeration). Мы это учитываем.
   if(data?.user){
     const identities = data.user.identities || [];
 
     if(identities.length === 0){
+      // Пользователь с таким email уже зарегистрирован
       showMsg('Этот логин уже занят. Выберите другое имя.', 'error');
       return;
     }
 
+    // Новый пользователь, ждёт подтверждения email
     showMsg(
       '📧 Аккаунт создан, но требует подтверждения email.<br><br>' +
       '<b>Чтобы войти без подтверждения:</b><br>' +
@@ -336,6 +289,7 @@ async function doRegister(){
     return;
   }
 
+  // Случай 3: ни user, ни error — непредвиденный ответ
   showMsg('Неожиданный ответ от сервера. Попробуйте ещё раз.', 'error');
 }
 
