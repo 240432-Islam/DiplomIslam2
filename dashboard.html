@@ -488,6 +488,30 @@ td.bold{color:var(--t1);font-weight:600;}
       <div class="tw"><table><thead><tr><th>Время</th><th>Пользователь</th><th>Событие</th><th>Описание</th><th>Статус</th></tr></thead><tbody id="al-tbody"></tbody></table></div>
     </div>
   </div>
+
+  <!-- CHATS (для admin) -->
+  <div id="v-chats" class="view">
+    <div class="pg-title">Чаты с пользователями</div>
+    
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="card-title" style="margin:0">💬 Активные чаты</div>
+        <button class="btn btn-r btn-sm adm" onclick="clearAllChats()">🗑️ Очистить все чаты</button>
+      </div>
+      <div class="tw">
+        <table>
+          <thead>
+            <tr>
+              <th>Пользователь</th>
+              <th>Роль</th>
+              <th>Статус</th>
+              <th>Последнее сообщение</th>
+              <th>Непрочитанных</th>
+            </tr>
+          </thead>
+          <tbody id="chats-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -558,32 +582,6 @@ td.bold{color:var(--t1);font-weight:600;}
     <div class="card" id="student-classmates" style="display:none">
       <div class="card-title">👨‍🎓 Однокурсники</div>
       <div id="classmates-list"></div>
-    </div>
-  </div>
-
-  <!-- CHATS (для admin) -->
-  <div id="v-chats" class="view">
-    <div class="pg-title">Чаты с пользователями</div>
-    
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div class="card-title" style="margin:0">💬 Активные чаты</div>
-        <button class="btn btn-r btn-sm adm" onclick="clearAllChats()">🗑️ Очистить все чаты</button>
-      </div>
-      <div class="tw">
-        <table>
-          <thead>
-            <tr>
-              <th>Пользователь</th>
-              <th>Роль</th>
-              <th>Статус</th>
-              <th>Последнее сообщение</th>
-              <th>Непрочитанных</th>
-            </tr>
-          </thead>
-          <tbody id="chats-tbody"></tbody>
-        </table>
-      </div>
     </div>
   </div>
 
@@ -1955,11 +1953,7 @@ async function loadAdminChats() {
   // Загружаем все чат-сессии для админа
   const { data, error } = await sb
     .from('chat_sessions')
-    .select(`
-      *,
-      teacher:teacher_id (full_name, username),
-      student:student_id (full_name, username)
-    `)
+    .select('*')
     .order('updated_at', { ascending: false });
   
   if (error) {
@@ -1974,8 +1968,25 @@ async function loadAdminChats() {
     return;
   }
   
+  // Загружаем профили для всех пользователей
+  const userIds = [...new Set([
+    ...sessions.filter(s => s.teacher_id).map(s => s.teacher_id),
+    ...sessions.filter(s => s.student_id).map(s => s.student_id)
+  ])];
+  
+  const { data: profiles } = await sb
+    .from('profiles')
+    .select('id, full_name, username, role')
+    .in('id', userIds);
+  
+  const profileMap = {};
+  (profiles || []).forEach(p => {
+    profileMap[p.id] = p;
+  });
+  
   const html = sessions.map(s => {
-    const user = s.teacher || s.student;
+    const userId = s.teacher_id || s.student_id;
+    const user = profileMap[userId];
     const userName = user?.full_name || user?.username || 'Неизвестный';
     const userRole = s.teacher_id ? 'Преподаватель' : 'Студент';
     
