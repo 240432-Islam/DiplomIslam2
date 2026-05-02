@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TURAN — База знаний</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-shared.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;color:#e2e8f0;}
+.bg{position:fixed;inset:0;background:url('media/Fon.png') center/cover no-repeat;z-index:0;}
+.bg::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(6,8,15,.92) 0%,rgba(6,12,30,.88) 100%);}
+.page{position:relative;z-index:1;min-height:100vh;padding:24px;}
+.header{max-width:1200px;margin:0 auto 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.header-title{font-family:'Montserrat',sans-serif;font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#fff 0%,#bfdbfe 40%,#60a5fa 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;}
+.btn-ghost{background:rgba(59,130,246,.08);color:#93c5fd;border:1.5px solid rgba(59,130,246,.15);}
+.btn-ghost:hover{background:rgba(59,130,246,.15);transform:translateY(-2px);}
+.container{max-width:1200px;margin:0 auto;}
+.kb-category{margin-bottom:48px;animation:fadeIn .5s ease-out;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.kb-category-title{font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+.kb-category-icon{font-size:1.8rem;}
+.kb-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;}
+.kb-card{background:rgba(10,16,35,.75);backdrop-filter:blur(16px);border:1px solid rgba(59,130,246,.12);border-radius:12px;padding:24px;transition:all .3s;cursor:pointer;}
+.kb-card:hover{transform:translateY(-4px);border-color:rgba(59,130,246,.3);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.kb-card-title{font-size:1.1rem;font-weight:600;color:#fff;margin-bottom:12px;}
+.kb-card-content{font-size:.9rem;color:rgba(148,163,184,.85);line-height:1.6;}
+.loading{text-align:center;padding:60px 20px;color:rgba(148,163,184,.6);font-size:1rem;}
+.spin{display:inline-block;width:24px;height:24px;border:3px solid rgba(59,130,246,.2);border-top-color:#60a5fa;border-radius:50%;animation:sp .8s linear infinite;margin-right:12px;}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="page">
+  <div class="header">
+    <div class="header-title">📚 База знаний</div>
+    <button class="btn btn-ghost" onclick="location.href='dashboard.html'">← Назад в кабинет</button>
+  </div>
+  
+  <div class="container">
+    <div id="loading" class="loading">
+      <span class="spin"></span>Загрузка...
+    </div>
+    <div id="kb-content"></div>
+  </div>
+</div>
+
+<script type="module">
+import { getPublishedCards, groupCardsByCategory, renderCategory } from './js/knowledge-base.js';
+
+async function loadKnowledgeBase() {
+  try {
+    const cards = await getPublishedCards();
+    const grouped = groupCardsByCategory(cards);
+    
+    const container = document.getElementById('kb-content');
+    const loading = document.getElementById('loading');
+    
+    loading.style.display = 'none';
+    
+    for (const [category, data] of Object.entries(grouped)) {
+      if (data.cards.length === 0) continue;
+      container.innerHTML += renderCategory(category, data);
+    }
+    
+    if (container.innerHTML === '') {
+      container.innerHTML = '<div class="loading">Нет доступных материалов</div>';
+    }
+  } catch (error) {
+    console.error('Error loading knowledge base:', error);
+    document.getElementById('loading').innerHTML = '❌ Ошибка загрузки. Попробуйте обновить страницу.';
+  }
+}
+
+// Проверка аутентификации
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (!session) {
+    location.href = 'login.html';
+    return;
+  }
+  loadKnowledgeBase();
+});
+</script>
+</body>
+</html>
