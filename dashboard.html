@@ -687,7 +687,7 @@ async function createUser(){
       event_type: 'user_created',
       description: `Создан: ${uname} (${role})`,
       status: 'success'
-    }).catch(()=>{});
+    });
 
     // Показываем результат
     document.getElementById('cu-r-login').textContent = uname;
