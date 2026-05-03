@@ -815,7 +815,7 @@ async function loadDash(){
 
   // Статистика пользователей — только для admin
   if(me?.role === 'admin'){
-    const {data:all} = await sb.rpc('get_all_profiles');
+    const {data:all} = await sb.rpc('get_all_users');
     const allU = all || [];
     document.getElementById('s-users').textContent = allU.length;
     document.getElementById('s-active').textContent = allU.filter(u=>u.is_active).length;
@@ -2297,8 +2297,33 @@ init = async function() {
   
   if (me?.role === 'admin') {
     await loadAllChats();
+    // Подписываемся на новые события в реальном времени
+    subscribeToAuditLogs();
   }
 };
+
+// ═══════ REALTIME: Подписка на события для админа ═══════
+function subscribeToAuditLogs() {
+  if (me?.role !== 'admin') return;
+  
+  sb.channel('audit_logs_realtime')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'audit_logs'
+    }, payload => {
+      console.log('New audit log:', payload.new);
+      
+      // Если мы на странице Dashboard или Audit, обновляем
+      const currentView = document.querySelector('.view.act')?.id;
+      if (currentView === 'v-dash') {
+        loadDash();
+      } else if (currentView === 'v-audit') {
+        loadAudit();
+      }
+    })
+    .subscribe();
+}
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
