@@ -1125,27 +1125,15 @@ async function joinGroup2() {
 }
 
 async function loadClassmates(groupId) {
-  const { data, error } = await sb
-    .from('group_enrollments')
-    .select(`
-      student_id,
-      enrolled_at,
-      profiles:student_id (
-        id,
-        full_name,
-        username,
-        last_login
-      )
-    `)
-    .eq('group_id', groupId)
-    .neq('student_id', me.id);
+  // Используем RPC функцию для получения однокурсников
+  const { data, error } = await sb.rpc('get_my_classmates');
   
   if (error) {
     console.error('Classmates error:', error);
     return;
   }
   
-  const classmates = data || [];
+  const classmates = (data || []).filter(c => c.id !== me.id && c.role === 'student');
   
   if (classmates.length === 0) {
     document.getElementById('classmates-list').innerHTML = '<p style="color:var(--t3);text-align:center;padding:20px">Пока нет других студентов в группе</p>';
@@ -1159,17 +1147,16 @@ async function loadClassmates(groupId) {
           <tr>
             <th>ФИО</th>
             <th>Логин</th>
-            <th>Последний вход</th>
+            <th>Дата регистрации</th>
           </tr>
         </thead>
         <tbody>
           ${classmates.map(c => {
-            const p = c.profiles;
             return `
               <tr>
-                <td class="bold">${p.full_name || p.username}</td>
-                <td style="font-family:monospace;font-size:.82rem">${p.username}</td>
-                <td>${p.last_login ? fmtDate(p.last_login) : '—'}</td>
+                <td class="bold">${c.full_name || c.username}</td>
+                <td style="font-family:monospace;font-size:.82rem">${c.username}</td>
+                <td>${fmtDate(c.created_at)}</td>
               </tr>
             `;
           }).join('')}
@@ -1177,6 +1164,9 @@ async function loadClassmates(groupId) {
       </table>
     </div>
   `;
+  
+  document.getElementById('classmates-list').innerHTML = html;
+}
   
   document.getElementById('classmates-list').innerHTML = html;
 }
@@ -1309,7 +1299,7 @@ async function savePolicy(){
 // ═══════ USERS ═══════
 async function loadUsers(){
   // Используем security definer функцию — обходит RLS без рекурсии
-  const {data,error} = await sb.rpc('get_all_profiles');
+  const {data,error} = await sb.rpc('get_all_users');
   if(error){console.error('loadUsers:',error.message);users=[];renderUsers();return;}
   users = data||[];
   renderUsers();
@@ -1916,20 +1906,8 @@ async function loadGroupStudents() {
   
   selectedGroup = groups.find(g => g.id === groupId);
   
-  const { data, error } = await sb
-    .from('group_enrollments')
-    .select(`
-      student_id,
-      enrolled_at,
-      profiles:student_id (
-        id,
-        full_name,
-        username,
-        last_login,
-        created_at
-      )
-    `)
-    .eq('group_id', groupId);
+  // Используем RPC функцию для получения студентов группы
+  const { data, error } = await sb.rpc('get_group_students', { target_group_id: groupId });
   
   if (error) {
     console.error('Students error:', error);
@@ -1952,22 +1930,27 @@ async function loadGroupStudents() {
             <th>ФИО</th>
             <th>Логин</th>
             <th>Зарегистрирован</th>
-            <th>Последний вход</th>
+            <th>Дата вступления</th>
           </tr>
         </thead>
         <tbody>
           ${students.map(s => {
-            const p = s.profiles;
-            if (!p) {
-              return `
-                <tr>
-                  <td colspan="4" style="color:var(--t3);text-align:center">Ошибка загрузки профиля студента</td>
-                </tr>
-              `;
-            }
             return `
               <tr>
-                <td class="bold">${p.full_name || p.username || '—'}</td>
+                <td class="bold">${s.full_name || s.username || '—'}</td>
+                <td style="font-family:monospace;font-size:.82rem">${s.username}</td>
+                <td style="font-size:.82rem;color:var(--t3)">${fmtDate(s.created_at)}</td>
+                <td style="font-size:.82rem;color:var(--t3)">${fmtDate(s.enrolled_at)}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  document.getElementById('group-students').innerHTML = html;
+}
                 <td>${p.username || '—'}</td>
                 <td>${fmtDate(p.created_at)}</td>
                 <td>${p.last_login ? fmtDate(p.last_login) : '—'}</td>
@@ -1988,11 +1971,8 @@ let chatMessages = [];
 let chatSubscription = null;
 
 async function loadAdminChats() {
-  // Загружаем все чат-сессии для админа
-  const { data, error } = await sb
-    .from('chat_sessions')
-    .select('*')
-    .order('updated_at', { ascending: false });
+  // Используем RPC функцию для получения чатов (обходит RLS)
+  const { data, error } = await sb.rpc('get_all_chat_sessions');
   
   if (error) {
     console.error('Admin chats error:', error);
@@ -2006,21 +1986,20 @@ async function loadAdminChats() {
     return;
   }
   
-  // Загружаем профили для всех пользователей
+  // Загружаем профили для всех пользователей через RPC
   const userIds = [...new Set([
     ...sessions.filter(s => s.teacher_id).map(s => s.teacher_id),
     ...sessions.filter(s => s.student_id).map(s => s.student_id)
   ])];
   
-  const { data: profiles } = await sb
-    .from('profiles')
-    .select('id, full_name, username, role')
-    .in('id', userIds);
-  
+  // Получаем профили через RPC функцию
   const profileMap = {};
-  (profiles || []).forEach(p => {
-    profileMap[p.id] = p;
-  });
+  for (const userId of userIds) {
+    const { data: profile } = await sb.rpc('get_profile_by_id', { target_id: userId });
+    if (profile && profile.length > 0) {
+      profileMap[userId] = profile[0];
+    }
+  }
   
   const html = sessions.map(s => {
     const userId = s.teacher_id || s.student_id;
@@ -2213,7 +2192,34 @@ async function loadAllChats() {
     return;
   }
   
-  allChatSessions = data || [];
+  const sessions = data || [];
+  
+  // Загружаем имена пользователей через RPC
+  const userIds = [...new Set([
+    ...sessions.filter(s => s.teacher_id).map(s => s.teacher_id),
+    ...sessions.filter(s => s.student_id).map(s => s.student_id)
+  ])];
+  
+  const profileMap = {};
+  for (const userId of userIds) {
+    const { data: profile } = await sb.rpc('get_profile_by_id', { target_id: userId });
+    if (profile && profile.length > 0) {
+      profileMap[userId] = profile[0];
+    }
+  }
+  
+  // Добавляем имена к сессиям
+  allChatSessions = sessions.map(s => {
+    const teacherProfile = s.teacher_id ? profileMap[s.teacher_id] : null;
+    const studentProfile = s.student_id ? profileMap[s.student_id] : null;
+    
+    return {
+      ...s,
+      teacher_name: teacherProfile?.full_name || teacherProfile?.username,
+      student_name: studentProfile?.full_name || studentProfile?.username
+    };
+  });
+  
   renderAllChats();
 }
 
