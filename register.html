@@ -99,6 +99,13 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
       <input id="dept" type="text" placeholder="Кафедра информатики">
     </div>
     <div class="field">
+      <label>Роль</label>
+      <select id="role" style="width:100%;padding:12px 16px;background:rgba(15,23,42,.8);border:1.5px solid rgba(59,130,246,.15);border-radius:10px;color:#e2e8f0;font-size:.9rem;font-family:'Inter',sans-serif;outline:none;cursor:pointer;">
+        <option value="student">Студент</option>
+        <option value="teacher">Преподаватель</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Пароль</label>
       <div class="input-wrap">
         <input id="password" type="password" placeholder="••••••••" oninput="checkStrength()" style="padding-right:72px">
@@ -188,6 +195,7 @@ async function doRegister(){
   const fullname=document.getElementById('fullname').value.trim();
   const username=document.getElementById('username').value.trim();
   const dept=document.getElementById('dept').value.trim();
+  const role=document.getElementById('role').value;
   const pw=document.getElementById('password').value;
   const confirm=document.getElementById('confirm').value;
 
@@ -209,7 +217,7 @@ async function doRegister(){
         data: {
           full_name: fullname,
           username: username,
-          role: 'teacher',
+          role: role,
           department: dept
         }
       }
