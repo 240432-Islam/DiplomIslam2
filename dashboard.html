@@ -785,27 +785,29 @@ function nav(id){
   document.getElementById(id)?.classList.add('act');
   document.querySelector(`.nav-item[data-v="${id}"]`)?.classList.add('act');
   
-  // Логируем переход по разделам
-  const sectionNames = {
-    'v-dash': 'Dashboard',
-    'v-profile': 'Профиль',
-    'v-policy': 'Политика паролей',
-    'v-users': 'Пользователи',
-    'v-audit': 'Журнал событий',
-    'v-groups': 'Группы',
-    'v-my-group': 'Моя группа',
-    'v-kb': 'Справочная база',
-    'v-chats': 'Чаты'
-  };
-  
-  if (sectionNames[id]) {
-    sb.from('audit_logs').insert({
-      user_id: me.id,
-      username: me.username,
-      event_type: 'page_view',
-      description: `Открыт раздел: ${sectionNames[id]}`,
-      status: 'success'
-    }).then(() => {}).catch(() => {});
+  // Логируем переход по разделам (НЕ для админа)
+  if (me?.role !== 'admin') {
+    const sectionNames = {
+      'v-dash': 'Dashboard',
+      'v-profile': 'Профиль',
+      'v-policy': 'Политика паролей',
+      'v-users': 'Пользователи',
+      'v-audit': 'Журнал событий',
+      'v-groups': 'Группы',
+      'v-my-group': 'Моя группа',
+      'v-kb': 'Справочная база',
+      'v-chats': 'Чаты'
+    };
+    
+    if (sectionNames[id]) {
+      sb.from('audit_logs').insert({
+        user_id: me.id,
+        username: me.username,
+        event_type: 'page_view',
+        description: `Открыт раздел: ${sectionNames[id]}`,
+        status: 'success'
+      }).then(() => {}).catch(() => {});
+    }
   }
   
   if(id==='v-dash') loadDash();
@@ -1734,14 +1736,16 @@ function openKbCard(id) {
   document.getElementById('kb-modal-content').innerHTML = card.content;
   document.getElementById('m-kb').classList.add('open');
   
-  // Логируем просмотр статьи
-  sb.from('audit_logs').insert({
-    user_id: me.id,
-    username: me.username,
-    event_type: 'kb_article_viewed',
-    description: `Просмотрена статья: ${card.title}`,
-    status: 'success'
-  }).then(() => {}).catch(() => {});
+  // Логируем просмотр статьи (НЕ для админа)
+  if (me?.role !== 'admin') {
+    sb.from('audit_logs').insert({
+      user_id: me.id,
+      username: me.username,
+      event_type: 'kb_article_viewed',
+      description: `Просмотрена статья: ${card.title}`,
+      status: 'success'
+    }).then(() => {}).catch(() => {});
+  }
 }
 
 // ═══════ ГРУППЫ (для teacher) ═══════
@@ -2193,14 +2197,16 @@ async function sendChatMessage() {
     return;
   }
   
-  // Логируем отправку сообщения
-  await sb.from('audit_logs').insert({
-    user_id: me.id,
-    username: me.username,
-    event_type: 'chat_message_sent',
-    description: `Отправлено сообщение в чат (${text.substring(0, 30)}${text.length > 30 ? '...' : ''})`,
-    status: 'success'
-  }).then(() => {}).catch(() => {});
+  // Логируем отправку сообщения (НЕ для админа)
+  if (me?.role !== 'admin') {
+    await sb.from('audit_logs').insert({
+      user_id: me.id,
+      username: me.username,
+      event_type: 'chat_message_sent',
+      description: `Отправлено сообщение в чат (${text.substring(0, 30)}${text.length > 30 ? '...' : ''})`,
+      status: 'success'
+    }).then(() => {}).catch(() => {});
+  }
   
   input.value = '';
 }
