@@ -803,8 +803,15 @@ async function loadDash(){
   // Для admin — через security definer функцию
   let logs = [];
   if(me?.role === 'admin'){
-    const {data} = await sb.rpc('get_all_audit_logs');
-    logs = data || [];
+    const {data, error} = await sb.rpc('get_all_audit_logs');
+    if (error) {
+      console.error('RPC error, trying direct query:', error);
+      // Fallback: прямой запрос
+      const {data:d2} = await sb.from('audit_logs').select('username,event_type,status,created_at').order('created_at',{ascending:false}).limit(100);
+      logs = d2 || [];
+    } else {
+      logs = data || [];
+    }
   } else {
     const {data} = await sb.from('audit_logs').select('username,event_type,status,created_at').order('created_at',{ascending:false}).limit(20);
     logs = data || [];
@@ -1507,8 +1514,16 @@ async function createUser(){
 async function loadAudit(){
   let data=[];
   if(me?.role==='admin'){
-    const {data:d}=await sb.rpc('get_all_audit_logs');
-    data=d||[];
+    // Пробуем через RPC функцию
+    const {data:d, error} = await sb.rpc('get_all_audit_logs');
+    if (error) {
+      console.error('RPC error, trying direct query:', error);
+      // Fallback: прямой запрос (если RLS настроен правильно)
+      const {data:d2} = await sb.from('audit_logs').select('*').order('created_at',{ascending:false});
+      data = d2 || [];
+    } else {
+      data = d || [];
+    }
   } else {
     const {data:d}=await sb.from('audit_logs').select('*').order('created_at',{ascending:false}).limit(100);
     data=d||[];
