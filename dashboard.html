@@ -1167,9 +1167,6 @@ async function loadClassmates(groupId) {
   
   document.getElementById('classmates-list').innerHTML = html;
 }
-  
-  document.getElementById('classmates-list').innerHTML = html;
-}
 
 async function leaveGroup2() {
   const groupName = document.getElementById('my-group-name').textContent;
@@ -1941,19 +1938,6 @@ async function loadGroupStudents() {
                 <td style="font-family:monospace;font-size:.82rem">${s.username}</td>
                 <td style="font-size:.82rem;color:var(--t3)">${fmtDate(s.created_at)}</td>
                 <td style="font-size:.82rem;color:var(--t3)">${fmtDate(s.enrolled_at)}</td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-  
-  document.getElementById('group-students').innerHTML = html;
-}
-                <td>${p.username || '—'}</td>
-                <td>${fmtDate(p.created_at)}</td>
-                <td>${p.last_login ? fmtDate(p.last_login) : '—'}</td>
               </tr>
             `;
           }).join('')}
