@@ -118,6 +118,9 @@ body{font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;backgroun
     </div>
     <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Войти</button>
     <button class="btn btn-ghost" onclick="location.href='index.html'">← На главную</button>
+    <div class="link-row">
+      <a href="forgot-password.html">Забыли пароль?</a>
+    </div>
     <div class="link-row">Нет аккаунта? <a href="register.html">Зарегистрироваться</a></div>
   </div>
 </div>
@@ -173,9 +176,24 @@ async function doLogin(){
   }
 
   setLoading(true);
-  const email = username + '@turan.kz';
+  
+  // Ищем email пользователя по логину в profiles
+  const {data: profile, error: profileError} = await sb
+    .from('profiles')
+    .select('email')
+    .eq('username', username)
+    .maybeSingle();
+  
+  if(profileError || !profile || !profile.email){
+    setLoading(false);
+    showMsg('msg', 'Пользователь с таким логином не найден', 'error');
+    return;
+  }
 
-  const {data, error} = await sb.auth.signInWithPassword({email, password});
+  const {data, error} = await sb.auth.signInWithPassword({
+    email: profile.email, 
+    password
+  });
 
   if(error){
     setLoading(false);

@@ -88,6 +88,10 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
       <input id="fullname" type="text" placeholder="Иванов Иван Иванович" oninput="onFio()">
     </div>
     <div class="field">
+      <label>Email (для восстановления пароля)</label>
+      <input id="email" type="email" placeholder="ivanov@example.com" required>
+    </div>
+    <div class="field">
       <label>Логин (генерируется автоматически)</label>
       <div class="input-wrap">
         <input id="username" type="text" readonly placeholder="ivanov_ii" style="padding-right:95px">
@@ -193,6 +197,7 @@ function setLoading(on){
 
 async function doRegister(){
   const fullname=document.getElementById('fullname').value.trim();
+  const email=document.getElementById('email').value.trim();
   const username=document.getElementById('username').value.trim();
   const dept=document.getElementById('dept').value.trim();
   const role=document.getElementById('role').value;
@@ -200,18 +205,18 @@ async function doRegister(){
   const confirm=document.getElementById('confirm').value;
 
   if(!fullname||!username){showMsg('Введите ФИО для генерации логина','error');return;}
+  if(!email){showMsg('Введите email','error');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showMsg('Введите корректный email','error');return;}
   if(!pw){showMsg('Введите пароль','error');return;}
   if(pw!==confirm){showMsg('Пароли не совпадают','error');return;}
   if(pw.length<8){showMsg('Пароль должен быть минимум 8 символов','error');return;}
 
   setLoading(true);
 
-  const email = username + '@turan.kz';
-
   let data, error;
   try {
     const result = await sb.auth.signUp({
-      email,
+      email: email,
       password: pw,
       options: {
         data: {
