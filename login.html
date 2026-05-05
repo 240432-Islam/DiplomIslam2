@@ -177,21 +177,19 @@ async function doLogin(){
 
   setLoading(true);
   
-  // Ищем email пользователя по логину в profiles
-  const {data: profile, error: profileError} = await sb
-    .from('profiles')
-    .select('email')
-    .eq('username', username)
-    .maybeSingle();
+  // Ищем email пользователя по логину через RPC функцию
+  const {data: email, error: emailError} = await sb.rpc('get_email_by_username', {
+    target_username: username
+  });
   
-  if(profileError || !profile || !profile.email){
+  if(emailError || !email){
     setLoading(false);
     showMsg('msg', 'Пользователь с таким логином не найден', 'error');
     return;
   }
 
   const {data, error} = await sb.auth.signInWithPassword({
-    email: profile.email, 
+    email: email, 
     password
   });
 
