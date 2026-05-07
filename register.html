@@ -187,7 +187,7 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
       <div>Представьтесь, чтобы начать чат с администратором</div>
       <div class="chat-name-form">
         <input type="text" id="guest-name" placeholder="Ваше имя" maxlength="50">
-        <input type="email" id="guest-email" placeholder="Email (необязательно)" maxlength="100">
+        <input type="email" id="guest-email" placeholder="Email (обязательно)" maxlength="100" required>
         <button onclick="startAnonymousChat()">Начать чат</button>
       </div>
     </div>
@@ -396,24 +396,37 @@ async function startAnonymousChat() {
     return;
   }
   
-  const { data, error } = await sb
-    .from('anonymous_chat_sessions')
-    .insert({
-      guest_name: name,
-      guest_email: email || null,
-      status: 'active'
-    })
-    .select()
-    .single();
-  
-  if (error) {
-    console.error('Error creating anonymous chat:', error);
-    alert('Ошибка создания чата. Попробуйте ещё раз.');
+  if (!email) {
+    alert('Введите ваш email');
     return;
   }
   
-  anonChatSession = data;
-  localStorage.setItem('anonChatSession', JSON.stringify(data));
+  // Проверяем email через функцию
+  const { data, error } = await sb.rpc('create_anonymous_chat_session', {
+    p_guest_name: name,
+    p_guest_email: email
+  });
+  
+  if (error) {
+    console.error('Error creating anonymous chat:', error);
+    alert('Ошибка создания чата: ' + error.message);
+    return;
+  }
+  
+  if (!data.success) {
+    alert(data.error);
+    return;
+  }
+  
+  // Email подтверждён, создаём сессию
+  anonChatSession = {
+    id: data.session_id,
+    guest_name: data.guest_name,
+    guest_email: data.guest_email,
+    verified_user_id: data.verified_user_id
+  };
+  
+  localStorage.setItem('anonChatSession', JSON.stringify(anonChatSession));
   
   document.getElementById('chat-intro').style.display = 'none';
   document.getElementById('chat-footer').style.display = 'flex';
@@ -428,6 +441,7 @@ async function startAnonymousChat() {
     is_read: false
   });
   
+  await loadAnonymousMessages();
   document.getElementById('chat-input').focus();
 }
 
