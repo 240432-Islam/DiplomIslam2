@@ -2633,7 +2633,10 @@ function renderAnonChats() {
         <td>${chat.unread_count > 0 ? `<span class="badge b-red">${chat.unread_count}</span>` : '—'}</td>
         <td><span class="badge ${chat.status === 'active' ? 'b-green' : 'b-gray'}">${chat.status === 'active' ? 'Активен' : 'Закрыт'}</span></td>
         <td style="font-size:.75rem;color:var(--t3)">${fmtDate(chat.created_at)}</td>
-        <td><button class="btn btn-sm btn-p" onclick="openAnonChat('${chat.id}')">Открыть</button></td>
+        <td>
+          <button class="btn btn-sm btn-p" onclick="openAnonChat('${chat.id}')" style="margin-right:6px">💬 Открыть</button>
+          <button class="btn btn-sm btn-r" onclick="deleteAnonChat('${chat.id}', '${chat.guest_name}')">🗑️</button>
+        </td>
       </tr>
     `;
   }).join('');
@@ -2759,6 +2762,9 @@ async function sendAnonChatMessage() {
   }
   
   input.value = '';
+  
+  // Сразу загружаем сообщения чтобы увидеть своё
+  await loadAnonChatMessages();
 }
 
 async function closeAnonChat() {
@@ -2793,6 +2799,37 @@ function closeAnonChatModal() {
   anonChatMessages = [];
   
   document.getElementById('m-anon-chat').classList.remove('open');
+}
+
+async function deleteAnonChat(sessionId, guestName) {
+  if (!confirm(`Удалить чат с ${guestName}?\n\nВсе сообщения будут удалены безвозвратно.`)) {
+    return;
+  }
+  
+  const { data, error } = await sb.rpc('delete_anonymous_chat', {
+    p_session_id: sessionId
+  });
+  
+  if (error) {
+    console.error('Error deleting anonymous chat:', error);
+    toast('Ошибка удаления чата: ' + error.message, 't-e');
+    return;
+  }
+  
+  if (!data.success) {
+    toast(data.error || 'Ошибка удаления чата', 't-e');
+    return;
+  }
+  
+  toast(`Чат удалён (${data.deleted_messages} сообщений)`, 't-s');
+  
+  // Если этот чат был открыт, закрываем модалку
+  if (currentAnonChat && currentAnonChat.id === sessionId) {
+    closeAnonChatModal();
+  }
+  
+  // Обновляем список чатов
+  await loadAnonChats();
 }
 
 document.addEventListener('DOMContentLoaded', init);
