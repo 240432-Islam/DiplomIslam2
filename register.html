@@ -71,6 +71,39 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
 .link-row a:hover{color:#93c5fd;text-decoration:underline;}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:7px;}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* Chat button */
+.chat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;font-size:1.5rem;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,.4);transition:all .3s;z-index:1000;display:flex;align-items:center;justify-content:center;}
+.chat-fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(59,130,246,.6);}
+.chat-fab.has-unread::after{content:'';position:absolute;top:8px;right:8px;width:12px;height:12px;background:#ef4444;border-radius:50%;border:2px solid #06080f;}
+
+/* Chat window */
+.chat-window{position:fixed;bottom:90px;right:24px;width:360px;max-width:calc(100vw - 48px);height:500px;max-height:calc(100vh - 140px);background:rgba(10,16,35,.97);backdrop-filter:blur(24px);border:1px solid rgba(59,130,246,.25);border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.6);display:none;flex-direction:column;z-index:1001;animation:up .3s ease-out;}
+.chat-window.open{display:flex;}
+.chat-header{padding:16px;border-bottom:1px solid rgba(59,130,246,.15);display:flex;align-items:center;justify-content:space-between;}
+.chat-title{font-family:'Montserrat',sans-serif;font-size:1rem;font-weight:700;color:#e2e8f0;}
+.chat-close{background:none;border:none;color:rgba(148,163,184,.6);font-size:1.2rem;cursor:pointer;padding:4px;line-height:1;transition:color .2s;}
+.chat-close:hover{color:#e2e8f0;}
+.chat-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+.chat-msg{max-width:80%;padding:10px 14px;border-radius:12px;font-size:.85rem;line-height:1.5;word-wrap:break-word;}
+.chat-msg.mine{align-self:flex-end;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-bottom-right-radius:4px;}
+.chat-msg.theirs{align-self:flex-start;background:rgba(59,130,246,.12);color:#e2e8f0;border-bottom-left-radius:4px;}
+.chat-msg-time{font-size:.7rem;color:rgba(148,163,184,.5);margin-top:4px;}
+.chat-footer{padding:12px;border-top:1px solid rgba(59,130,246,.15);display:flex;gap:8px;}
+.chat-input{flex:1;padding:10px 12px;background:rgba(15,23,42,.8);border:1.5px solid rgba(59,130,246,.15);border-radius:8px;color:#e2e8f0;font-size:.85rem;font-family:'Inter',sans-serif;outline:none;resize:none;max-height:80px;}
+.chat-input:focus{border-color:rgba(59,130,246,.5);}
+.chat-send{padding:10px 16px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.chat-send:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(59,130,246,.4);}
+.chat-send:disabled{opacity:.5;cursor:not-allowed;}
+
+/* Chat intro */
+.chat-intro{text-align:center;padding:20px;color:rgba(148,163,184,.7);font-size:.82rem;}
+.chat-intro-icon{font-size:2.5rem;margin-bottom:12px;}
+.chat-intro-title{font-weight:600;color:#e2e8f0;margin-bottom:8px;}
+.chat-name-form{margin-top:16px;}
+.chat-name-form input{width:100%;padding:10px 12px;background:rgba(15,23,42,.8);border:1.5px solid rgba(59,130,246,.15);border-radius:8px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none;}
+.chat-name-form input:focus{border-color:rgba(59,130,246,.5);}
+.chat-name-form button{width:100%;padding:10px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -134,11 +167,34 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
     </div>
     <button class="btn btn-primary" id="reg-btn" onclick="doRegister()">Зарегистрироваться</button>
     <button class="btn btn-ghost" onclick="location.href='index.html'">← На главную</button>
-    <div class="link-row" style="margin-top:16px;padding:12px;background:rgba(59,130,246,.08);border-radius:8px;border-left:3px solid #3b82f6;">
-      <div style="font-size:.82rem;color:#93c5fd;margin-bottom:4px;">💬 Нужна помощь?</div>
-      <div style="font-size:.75rem;color:rgba(148,163,184,.75);">Свяжитесь с администратором для получения помощи при регистрации</div>
-    </div>
     <div class="link-row">Уже есть аккаунт? <a href="login.html">Войти</a></div>
+  </div>
+</div>
+
+<!-- Chat FAB -->
+<button class="chat-fab" onclick="toggleChat()" id="chat-fab">💬</button>
+
+<!-- Chat Window -->
+<div class="chat-window" id="chat-window">
+  <div class="chat-header">
+    <div class="chat-title">💬 Чат с администратором</div>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-body" id="chat-body">
+    <div class="chat-intro" id="chat-intro">
+      <div class="chat-intro-icon">👋</div>
+      <div class="chat-intro-title">Нужна помощь?</div>
+      <div>Представьтесь, чтобы начать чат с администратором</div>
+      <div class="chat-name-form">
+        <input type="text" id="guest-name" placeholder="Ваше имя" maxlength="50">
+        <input type="email" id="guest-email" placeholder="Email (необязательно)" maxlength="100">
+        <button onclick="startAnonymousChat()">Начать чат</button>
+      </div>
+    </div>
+  </div>
+  <div class="chat-footer" id="chat-footer" style="display:none">
+    <textarea class="chat-input" id="chat-input" placeholder="Введите сообщение..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAnonymousMessage();}"></textarea>
+    <button class="chat-send" onclick="sendAnonymousMessage()">➤</button>
   </div>
 </div>
 
@@ -311,6 +367,206 @@ async function doRegister(){
 }
 
 document.getElementById('fullname').focus();
+
+// ═══════ ANONYMOUS CHAT ═══════
+let anonChatSession = null;
+let anonChatMessages = [];
+let anonChatSubscription = null;
+
+function toggleChat() {
+  const window = document.getElementById('chat-window');
+  const isOpen = window.classList.contains('open');
+  
+  if (isOpen) {
+    window.classList.remove('open');
+  } else {
+    window.classList.add('open');
+    if (anonChatSession) {
+      loadAnonymousMessages();
+    }
+  }
+}
+
+async function startAnonymousChat() {
+  const name = document.getElementById('guest-name').value.trim();
+  const email = document.getElementById('guest-email').value.trim();
+  
+  if (!name) {
+    alert('Введите ваше имя');
+    return;
+  }
+  
+  const { data, error } = await sb
+    .from('anonymous_chat_sessions')
+    .insert({
+      guest_name: name,
+      guest_email: email || null,
+      status: 'active'
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('Error creating anonymous chat:', error);
+    alert('Ошибка создания чата. Попробуйте ещё раз.');
+    return;
+  }
+  
+  anonChatSession = data;
+  localStorage.setItem('anonChatSession', JSON.stringify(data));
+  
+  document.getElementById('chat-intro').style.display = 'none';
+  document.getElementById('chat-footer').style.display = 'flex';
+  
+  subscribeToAnonymousChat();
+  
+  await sb.from('anonymous_chat_messages').insert({
+    session_id: anonChatSession.id,
+    sender_type: 'guest',
+    sender_name: name,
+    message_text: `Здравствуйте! Меня зовут ${name}. Мне нужна помощь с регистрацией.`,
+    is_read: false
+  });
+  
+  document.getElementById('chat-input').focus();
+}
+
+async function loadAnonymousMessages() {
+  if (!anonChatSession) return;
+  
+  const { data, error } = await sb
+    .from('anonymous_chat_messages')
+    .select('*')
+    .eq('session_id', anonChatSession.id)
+    .order('created_at', { ascending: true });
+  
+  if (error) {
+    console.error('Error loading messages:', error);
+    return;
+  }
+  
+  anonChatMessages = data || [];
+  renderAnonymousMessages();
+}
+
+function renderAnonymousMessages() {
+  const body = document.getElementById('chat-body');
+  
+  if (anonChatMessages.length === 0) {
+    body.innerHTML = '<div class="chat-intro"><div class="chat-intro-icon">💬</div><div>Напишите сообщение администратору</div></div>';
+    return;
+  }
+  
+  const html = anonChatMessages.map(msg => {
+    const isMine = msg.sender_type === 'guest';
+    const time = new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    
+    return `
+      <div class="chat-msg ${isMine ? 'mine' : 'theirs'}">
+        ${!isMine ? `<div style="font-size:.7rem;color:rgba(148,163,184,.7);margin-bottom:4px">${msg.sender_name}</div>` : ''}
+        <div>${escapeHtml(msg.message_text)}</div>
+        <div class="chat-msg-time">${time}</div>
+      </div>
+    `;
+  }).join('');
+  
+  body.innerHTML = html;
+  body.scrollTop = body.scrollHeight;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+async function sendAnonymousMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  
+  if (!text || !anonChatSession) return;
+  
+  const { error } = await sb
+    .from('anonymous_chat_messages')
+    .insert({
+      session_id: anonChatSession.id,
+      sender_type: 'guest',
+      sender_name: anonChatSession.guest_name,
+      message_text: text,
+      is_read: false
+    });
+  
+  if (error) {
+    console.error('Error sending message:', error);
+    alert('Ошибка отправки сообщения');
+    return;
+  }
+  
+  input.value = '';
+  input.style.height = 'auto';
+}
+
+function subscribeToAnonymousChat() {
+  if (anonChatSubscription) {
+    anonChatSubscription.unsubscribe();
+  }
+  
+  anonChatSubscription = sb
+    .channel(`anon-chat:${anonChatSession.id}`)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'anonymous_chat_messages',
+      filter: `session_id=eq.${anonChatSession.id}`
+    }, payload => {
+      anonChatMessages.push(payload.new);
+      renderAnonymousMessages();
+      
+      if (!document.getElementById('chat-window').classList.contains('open')) {
+        document.getElementById('chat-fab').classList.add('has-unread');
+      }
+    })
+    .subscribe();
+}
+
+(async () => {
+  const saved = localStorage.getItem('anonChatSession');
+  if (saved) {
+    try {
+      anonChatSession = JSON.parse(saved);
+      
+      const { data } = await sb
+        .from('anonymous_chat_sessions')
+        .select('*')
+        .eq('id', anonChatSession.id)
+        .eq('status', 'active')
+        .single();
+      
+      if (data) {
+        anonChatSession = data;
+        document.getElementById('chat-intro').style.display = 'none';
+        document.getElementById('chat-footer').style.display = 'flex';
+        await loadAnonymousMessages();
+        subscribeToAnonymousChat();
+      } else {
+        localStorage.removeItem('anonChatSession');
+        anonChatSession = null;
+      }
+    } catch (e) {
+      localStorage.removeItem('anonChatSession');
+    }
+  }
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('chat-input');
+  if (input) {
+    input.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+    });
+  }
+});
 </script>
 </body>
 </html>
