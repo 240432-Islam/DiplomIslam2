@@ -412,8 +412,11 @@ async function startAnonymousChat() {
     return;
   }
   
-  // Проверяем email через функцию
-  const { data, error } = await sb.rpc('create_anonymous_chat_session', {
+  // Очищаем старую сессию из localStorage
+  localStorage.removeItem('anonChatSession');
+  
+  // Проверяем email через функцию (v2 автоматически закрывает старые чаты)
+  const { data, error } = await sb.rpc('create_anonymous_chat_session_v2', {
     p_guest_name: name,
     p_guest_email: email
   });
@@ -533,6 +536,9 @@ async function sendAnonymousMessage() {
   
   input.value = '';
   input.style.height = 'auto';
+  
+  // Сразу загружаем сообщения чтобы увидеть своё
+  await loadAnonymousMessages();
 }
 
 function subscribeToAnonymousChat() {

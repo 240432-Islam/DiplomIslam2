@@ -1343,13 +1343,26 @@ async function changePw(){
   if(nw!==cf){showMsg('chpw-msg','Пароли не совпадают','msg-e');return;}
   if(nw.length<8){showMsg('chpw-msg','Минимум 8 символов','msg-e');return;}
 
-  const {error:re} = await sb.auth.signInWithPassword({email:me.username+'@turan.kz',password:old});
+  // Используем реальный email из профиля для проверки старого пароля
+  const {error:re} = await sb.auth.signInWithPassword({email:me.email,password:old});
   if(re){showMsg('chpw-msg','Текущий пароль неверен','msg-e');return;}
 
   const {error} = await sb.auth.updateUser({password:nw});
   if(error){showMsg('chpw-msg','Ошибка: '+error.message,'msg-e');return;}
 
-  await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:'password_change',description:'Пароль изменён',status:'success'}).then(()=>{}).catch(()=>{});
+  // Логируем смену пароля
+  const { error: logError } = await sb.from('audit_logs').insert({
+    user_id:me.id,
+    username:me.username,
+    event_type:'password_change',
+    description:'Пароль изменён',
+    status:'success'
+  });
+  
+  if (logError) {
+    console.error('Audit log error:', logError);
+  }
+  
   showMsg('chpw-msg','✅ Пароль изменён','msg-s');
   ['cpw-old','cpw-new','cpw-c'].forEach(id=>document.getElementById(id).value='');
 }
