@@ -2544,34 +2544,37 @@ async function doResetPassword() {
   btn.textContent = 'Сброс...';
   
   try {
-    // ВАЖНО: Supabase не позволяет менять пароль через клиентский SDK
-    // Нужно использовать Admin API через Edge Function или Backend
-    
-    // Временное решение: показываем инструкцию для ручного сброса
-    showRpMsg(`
-      <strong>⚠️ Автоматический сброс пароля недоступен</strong><br><br>
-      Для сброса пароля пользователя <strong>${username}</strong>:<br><br>
-      1. Откройте <strong>Supabase Dashboard</strong><br>
-      2. Перейдите в <strong>Authentication → Users</strong><br>
-      3. Найдите пользователя по email или username<br>
-      4. Нажмите на пользователя → <strong>Reset Password</strong><br>
-      5. Введите новый пароль: <code style="background:rgba(59,130,246,.15);padding:2px 6px;border-radius:4px;font-family:monospace">${newPassword}</code><br>
-      6. Сообщите пользователю новый пароль<br><br>
-      <button class="btn btn-sm btn-p" onclick="copyToClipboard('${newPassword}')" style="margin-top:8px">📋 Копировать пароль</button>
-    `, 'msg-info');
-    
-    // Логируем попытку сброса (используем 'success' пока не выполнен fix-audit-logs-status.sql)
-    const { error: logError } = await sb.from('audit_logs').insert({
-      user_id: me.id,
-      username: me.username,
-      event_type: 'admin_action',
-      description: `Запрос на сброс пароля для пользователя: ${username}`,
-      status: 'success'  // После выполнения fix-audit-logs-status.sql можно изменить на 'info'
+    // Вызываем SQL функцию для прямого сброса пароля
+    const { data, error } = await sb.rpc('admin_reset_password_by_username', {
+      p_username: username,
+      p_new_password: newPassword
     });
     
-    if (logError) {
-      console.error('Audit log error:', logError);
+    if (error) {
+      console.error('Reset password error:', error);
+      showRpMsg('Ошибка: ' + error.message, 'msg-error');
+      return;
     }
+    
+    if (!data.success) {
+      showRpMsg('Ошибка: ' + data.error, 'msg-error');
+      return;
+    }
+    
+    // Успешно!
+    showRpMsg(`
+      <strong>✅ Пароль успешно изменён!</strong><br><br>
+      <strong>Пользователь:</strong> ${data.username}<br>
+      <strong>Email:</strong> ${data.email}<br>
+      <strong>Новый пароль:</strong> <code style="background:rgba(34,197,94,.15);padding:2px 6px;border-radius:4px;font-family:monospace">${newPassword}</code><br><br>
+      <button class="btn btn-sm btn-p" onclick="copyToClipboard('${newPassword}')">📋 Копировать пароль</button>
+      <button class="btn btn-sm btn-g" onclick="closeResetPassword()" style="margin-left:8px">Закрыть</button>
+    `, 'msg-success');
+    
+    // Обновляем список пользователей
+    setTimeout(() => {
+      loadUsers();
+    }, 1500);
     
   } catch (error) {
     console.error('Reset password error:', error);
