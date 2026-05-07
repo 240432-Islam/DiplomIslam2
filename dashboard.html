@@ -2561,13 +2561,17 @@ async function doResetPassword() {
     `, 'msg-info');
     
     // Логируем попытку сброса
-    await sb.from('audit_logs').insert({
+    const { error: logError } = await sb.from('audit_logs').insert({
       user_id: me.id,
       username: me.username,
       event_type: 'admin_action',
       description: `Запрос на сброс пароля для пользователя: ${username}`,
       status: 'info'
-    }).catch(() => {});
+    });
+    
+    if (logError) {
+      console.error('Audit log error:', logError);
+    }
     
   } catch (error) {
     console.error('Reset password error:', error);
