@@ -470,7 +470,7 @@ input[type="checkbox"] {
         </select>
         <button class="btn btn-r btn-sm adm" onclick="deleteSelectedUsers()" id="delete-selected-btn" style="display:none">🗑️ Удалить выбранных (<span id="selected-count">0</span>)</button>
       </div>
-      <div class="tw"><table><thead><tr><th style="width:40px"><input type="checkbox" id="select-all-users" onchange="toggleSelectAll()" class="adm"></th><th>ФИО</th><th>Логин</th><th>Отдел</th><th>Роль</th><th>Статус</th><th>Создан</th><th></th></tr></thead><tbody id="u-tbody"></tbody></table></div>
+      <div class="tw"><table><thead><tr><th style="width:40px"><input type="checkbox" id="select-all-users" onchange="toggleSelectAll()" class="adm"></th><th>ФИО</th><th>Логин</th><th>Email</th><th>Отдел</th><th>Роль</th><th>Статус</th><th>Создан</th><th></th></tr></thead><tbody id="u-tbody"></tbody></table></div>
     </div>
   </div>
 
@@ -681,6 +681,34 @@ input[type="checkbox"] {
   </div>
 </div>
 
+<!-- Reset Password Modal -->
+<div class="modal-overlay" id="m-reset-password">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">🔑 Сброс пароля пользователя</div>
+    <div id="rp-msg" class="msg" style="display:none"></div>
+    <div class="field">
+      <label>Логин пользователя</label>
+      <input id="rp-username" type="text" readonly style="background:rgba(10,20,45,.5);color:var(--t2)">
+    </div>
+    <div class="field">
+      <label>Email пользователя</label>
+      <input id="rp-email" type="text" readonly style="background:rgba(10,20,45,.5);color:var(--t2)">
+    </div>
+    <div class="field">
+      <label>Новый пароль</label>
+      <div class="iw">
+        <input id="rp-new-password" type="text" placeholder="Минимум 6 символов" style="padding-right:88px">
+        <button class="cp-btn" onclick="generateRandomPassword()">⚡ Сгенерировать</button>
+      </div>
+      <div style="font-size:.72rem;color:var(--t3);margin-top:6px">💡 Скопируйте пароль и сообщите пользователю</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-p" onclick="doResetPassword()" id="rp-btn">Сбросить пароль</button>
+      <button class="btn btn-g" onclick="closeResetPassword()">Отмена</button>
+    </div>
+  </div>
+</div>
+
 <!-- Chat Modal -->
 <div class="modal-overlay" id="m-chat">
   <div class="modal" style="max-width:500px;max-height:80vh;display:flex;flex-direction:column">
@@ -709,6 +737,28 @@ let _polEdit = false;
 
 // ═══════ INIT ═══════
 async function init(){
+  // Проверяем URL на наличие ошибок (от Magic Link или Password Reset)
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const error = hashParams.get('error');
+  const errorDescription = hashParams.get('error_description');
+  
+  if (error) {
+    console.error('Auth error in URL:', error, errorDescription);
+    
+    // Очищаем URL от ошибки
+    window.location.hash = '';
+    
+    // Показываем сообщение
+    if (error === 'access_denied' && errorDescription?.includes('expired')) {
+      alert('❌ Ссылка истекла!\n\nСсылки для входа действительны только 1 час.\n\nЗапросите новую ссылку на странице восстановления пароля.');
+    } else {
+      alert('❌ Ошибка входа: ' + (errorDescription || error));
+    }
+    
+    location.href = 'login.html';
+    return;
+  }
+  
   const {data:{session}} = await sb.auth.getSession();
   if(!session){ location.href='login.html'; return; }
 
@@ -1353,11 +1403,15 @@ function renderUsers(){
       <td>${canSelect ? `<input type="checkbox" class="user-checkbox" data-user-id="${u.id}" data-username="${u.username}" onchange="updateSelectedCount()">` : ''}</td>
       <td class="bold">${u.full_name||'—'}</td>
       <td style="font-family:monospace;font-size:.82rem;color:var(--ac2)">${u.username}</td>
+      <td style="font-size:.8rem;color:var(--t2)">${u.email||'—'}</td>
       <td>${u.department||'—'}</td>
       <td><span class="badge ${u.role==='admin'?'b-gold':u.role==='teacher'?'b-blue':'b-green'}">${u.role==='admin'?'Администратор':u.role==='teacher'?'Преподаватель':'Студент'}</span></td>
       <td><span class="badge ${u.is_active?'b-green':'b-red'}">${u.is_active?'Активен':'Неактивен'}</span></td>
       <td style="font-size:.75rem;color:var(--t3)">${fmtDate(u.created_at)}</td>
-      <td><button class="btn btn-sm ${u.is_active?'btn-r':'btn-g'}" onclick="toggleUser('${u.id}',${u.is_active})">${u.is_active?'🚫':'✅'}</button></td>
+      <td>
+        <button class="btn btn-sm ${u.is_active?'btn-r':'btn-g'}" onclick="toggleUser('${u.id}',${u.is_active})" title="${u.is_active?'Деактивировать':'Активировать'}">${u.is_active?'🚫':'✅'}</button>
+        ${isAdmin && u.id !== me.id ? `<button class="btn btn-sm btn-p" onclick="openResetPassword('${u.id}','${u.username}','${u.email||''}')" title="Сбросить пароль" style="margin-left:4px">🔑</button>` : ''}
+      </td>
     </tr>`;
   }).join('');
   
@@ -2386,6 +2440,104 @@ function subscribeToAuditLogs() {
       }
     })
     .subscribe();
+}
+
+// ═══════ RESET PASSWORD ═══════
+let currentResetUserId = null;
+
+function openResetPassword(userId, username, email) {
+  currentResetUserId = userId;
+  document.getElementById('rp-username').value = username;
+  document.getElementById('rp-email').value = email || '—';
+  document.getElementById('rp-new-password').value = '';
+  document.getElementById('rp-msg').style.display = 'none';
+  document.getElementById('m-reset-password').classList.add('open');
+  
+  // Генерируем пароль автоматически
+  generateRandomPassword();
+}
+
+function closeResetPassword() {
+  currentResetUserId = null;
+  document.getElementById('m-reset-password').classList.remove('open');
+}
+
+function generateRandomPassword() {
+  // Генерируем случайный пароль: 8 символов (буквы + цифры)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let password = '';
+  for (let i = 0; i < 8; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  document.getElementById('rp-new-password').value = password;
+}
+
+async function doResetPassword() {
+  const newPassword = document.getElementById('rp-new-password').value.trim();
+  const username = document.getElementById('rp-username').value;
+  
+  if (!newPassword) {
+    showRpMsg('Введите новый пароль', 'msg-error');
+    return;
+  }
+  
+  if (newPassword.length < 6) {
+    showRpMsg('Пароль должен быть минимум 6 символов', 'msg-error');
+    return;
+  }
+  
+  const btn = document.getElementById('rp-btn');
+  btn.disabled = true;
+  btn.textContent = 'Сброс...';
+  
+  try {
+    // ВАЖНО: Supabase не позволяет менять пароль через клиентский SDK
+    // Нужно использовать Admin API через Edge Function или Backend
+    
+    // Временное решение: показываем инструкцию для ручного сброса
+    showRpMsg(`
+      <strong>⚠️ Автоматический сброс пароля недоступен</strong><br><br>
+      Для сброса пароля пользователя <strong>${username}</strong>:<br><br>
+      1. Откройте <strong>Supabase Dashboard</strong><br>
+      2. Перейдите в <strong>Authentication → Users</strong><br>
+      3. Найдите пользователя по email или username<br>
+      4. Нажмите на пользователя → <strong>Reset Password</strong><br>
+      5. Введите новый пароль: <code style="background:rgba(59,130,246,.15);padding:2px 6px;border-radius:4px;font-family:monospace">${newPassword}</code><br>
+      6. Сообщите пользователю новый пароль<br><br>
+      <button class="btn btn-sm btn-p" onclick="copyToClipboard('${newPassword}')" style="margin-top:8px">📋 Копировать пароль</button>
+    `, 'msg-info');
+    
+    // Логируем попытку сброса
+    await sb.from('audit_logs').insert({
+      user_id: me.id,
+      username: me.username,
+      event_type: 'admin_action',
+      description: `Запрос на сброс пароля для пользователя: ${username}`,
+      status: 'info'
+    }).catch(() => {});
+    
+  } catch (error) {
+    console.error('Reset password error:', error);
+    showRpMsg('Ошибка: ' + error.message, 'msg-error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Сбросить пароль';
+  }
+}
+
+function showRpMsg(text, type) {
+  const msg = document.getElementById('rp-msg');
+  msg.innerHTML = text;
+  msg.className = 'msg ' + type + ' show';
+  msg.style.display = 'block';
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    toast('Пароль скопирован в буфер обмена', 't-s');
+  }).catch(() => {
+    toast('Не удалось скопировать', 't-e');
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
