@@ -2560,13 +2560,13 @@ async function doResetPassword() {
       <button class="btn btn-sm btn-p" onclick="copyToClipboard('${newPassword}')" style="margin-top:8px">📋 Копировать пароль</button>
     `, 'msg-info');
     
-    // Логируем попытку сброса
+    // Логируем попытку сброса (используем 'success' пока не выполнен fix-audit-logs-status.sql)
     const { error: logError } = await sb.from('audit_logs').insert({
       user_id: me.id,
       username: me.username,
       event_type: 'admin_action',
       description: `Запрос на сброс пароля для пользователя: ${username}`,
-      status: 'info'
+      status: 'success'  // После выполнения fix-audit-logs-status.sql можно изменить на 'info'
     });
     
     if (logError) {
