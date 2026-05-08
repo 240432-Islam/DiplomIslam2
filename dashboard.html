@@ -929,6 +929,12 @@ function nav(id){
 async function loadDash(){
   document.getElementById('d-date').textContent = new Date().toLocaleString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
+  // Обновляем подписи карточек в зависимости от роли
+  if(me?.role === 'teacher'){
+    document.querySelector('#s-users').parentElement.querySelector('.stat-lbl').textContent = 'Студентов в группах';
+    document.querySelector('#s-active').parentElement.querySelector('.stat-lbl').textContent = 'Активных студентов';
+  }
+
   // Логи — только свои (RLS: user_id = auth.uid())
   // Для admin — через security definer функцию
   let logs = [];
@@ -950,17 +956,46 @@ async function loadDash(){
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('s-events').textContent = logs.filter(l=>l.created_at?.startsWith(today)).length;
 
-  // Статистика пользователей — только для admin
+  // Статистика пользователей
   if(me?.role === 'admin'){
+    // Админ видит всех пользователей
     const {data:all} = await sb.rpc('get_all_users');
     const allU = all || [];
     document.getElementById('s-users').textContent = allU.length;
     document.getElementById('s-active').textContent = allU.filter(u=>u.is_active).length;
+    document.getElementById('s-2fa').textContent = '—';
+  } else if(me?.role === 'teacher'){
+    // Преподаватель видит статистику своих групп
+    const {data:myGroups} = await sb
+      .from('groups')
+      .select('id')
+      .eq('teacher_id', me.id)
+      .eq('is_archived', false);
+    
+    const groupIds = (myGroups || []).map(g => g.id);
+    
+    if (groupIds.length > 0) {
+      // Количество студентов в группах преподавателя
+      const {data:enrollments} = await sb
+        .from('group_enrollments')
+        .select('student_id, profiles!inner(is_active)')
+        .in('group_id', groupIds);
+      
+      const students = enrollments || [];
+      document.getElementById('s-users').textContent = students.length;
+      document.getElementById('s-active').textContent = students.filter(s => s.profiles?.is_active).length;
+    } else {
+      // Нет групп
+      document.getElementById('s-users').textContent = '0';
+      document.getElementById('s-active').textContent = '0';
+    }
+    document.getElementById('s-2fa').textContent = '—';
   } else {
+    // Студент не видит статистику
     document.getElementById('s-users').textContent = '—';
     document.getElementById('s-active').textContent = '—';
+    document.getElementById('s-2fa').textContent = '—';
   }
-  document.getElementById('s-2fa').textContent = '—';
 
   document.getElementById('d-events').innerHTML = logs.slice(0,8).map(l=>`
     <tr>
