@@ -560,7 +560,7 @@ function subscribeToAnonymousChat() {
         .select('*')
         .eq('id', anonChatSession.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
       
       if (data) {
         anonChatSession = data;
