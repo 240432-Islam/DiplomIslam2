@@ -931,8 +931,11 @@ async function loadDash(){
 
   // Обновляем подписи карточек в зависимости от роли
   if(me?.role === 'teacher'){
-    document.querySelector('#s-users').parentElement.querySelector('.stat-lbl').textContent = 'Студентов в группах';
-    document.querySelector('#s-active').parentElement.querySelector('.stat-lbl').textContent = 'Активных студентов';
+    document.querySelector('#s-users').parentElement.querySelector('.stat-lbl').textContent = 'Пользователей';
+    document.querySelector('#s-active').parentElement.querySelector('.stat-lbl').textContent = 'Активных';
+  } else if(me?.role === 'student'){
+    document.querySelector('#s-users').parentElement.querySelector('.stat-lbl').textContent = 'Однокурсников';
+    document.querySelector('#s-active').parentElement.querySelector('.stat-lbl').textContent = 'Активных';
   }
 
   // Логи — только свои (RLS: user_id = auth.uid())
@@ -958,40 +961,85 @@ async function loadDash(){
 
   // Статистика пользователей
   if(me?.role === 'admin'){
-    // Админ видит всех пользователей
+    // Админ видит всех пользователей (включая админов)
     const {data:all} = await sb.rpc('get_all_users');
     const allU = all || [];
     document.getElementById('s-users').textContent = allU.length;
     document.getElementById('s-active').textContent = allU.filter(u=>u.is_active).length;
     document.getElementById('s-2fa').textContent = '—';
   } else if(me?.role === 'teacher'){
-    // Преподаватель видит статистику своих групп
+    // Преподаватель видит статистику своих групп (студенты + преподаватели, без админов)
     const {data:myGroups} = await sb
       .from('groups')
-      .select('id')
+      .select('id, teacher_id')
       .eq('teacher_id', me.id)
       .eq('is_archived', false);
     
     const groupIds = (myGroups || []).map(g => g.id);
     
     if (groupIds.length > 0) {
-      // Количество студентов в группах преподавателя
+      // Студенты в группах преподавателя
       const {data:enrollments} = await sb
         .from('group_enrollments')
-        .select('student_id, profiles!inner(is_active)')
+        .select('student_id, profiles!inner(is_active, role)')
         .in('group_id', groupIds);
       
       const students = enrollments || [];
-      document.getElementById('s-users').textContent = students.length;
-      document.getElementById('s-active').textContent = students.filter(s => s.profiles?.is_active).length;
+      
+      // Преподаватели групп (включая себя)
+      const teacherIds = [...new Set(myGroups.map(g => g.teacher_id))];
+      const {data:teachers} = await sb
+        .from('profiles')
+        .select('id, is_active, role')
+        .in('id', teacherIds)
+        .neq('role', 'admin');
+      
+      const allUsers = [...students, ...(teachers || [])];
+      
+      document.getElementById('s-users').textContent = allUsers.length;
+      document.getElementById('s-active').textContent = allUsers.filter(u => u.profiles?.is_active || u.is_active).length;
     } else {
-      // Нет групп
-      document.getElementById('s-users').textContent = '0';
-      document.getElementById('s-active').textContent = '0';
+      // Нет групп - показываем только себя
+      document.getElementById('s-users').textContent = '1';
+      document.getElementById('s-active').textContent = me.is_active ? '1' : '0';
+    }
+    document.getElementById('s-2fa').textContent = '—';
+  } else if(me?.role === 'student'){
+    // Студент видит: однокурсников + преподавателей своей группы (без админов)
+    const {data:myEnrollments} = await sb
+      .from('group_enrollments')
+      .select('group_id, groups!inner(teacher_id)')
+      .eq('student_id', me.id);
+    
+    if (myEnrollments && myEnrollments.length > 0) {
+      const groupIds = myEnrollments.map(e => e.group_id);
+      const teacherIds = [...new Set(myEnrollments.map(e => e.groups.teacher_id))];
+      
+      // Все студенты в тех же группах
+      const {data:classmates} = await sb
+        .from('group_enrollments')
+        .select('student_id, profiles!inner(is_active, role)')
+        .in('group_id', groupIds);
+      
+      // Преподаватели этих групп
+      const {data:teachers} = await sb
+        .from('profiles')
+        .select('id, is_active, role')
+        .in('id', teacherIds)
+        .neq('role', 'admin');
+      
+      const allUsers = [...(classmates || []), ...(teachers || [])];
+      
+      document.getElementById('s-users').textContent = allUsers.length;
+      document.getElementById('s-active').textContent = allUsers.filter(u => u.profiles?.is_active || u.is_active).length;
+    } else {
+      // Не в группе - показываем только себя
+      document.getElementById('s-users').textContent = '1';
+      document.getElementById('s-active').textContent = me.is_active ? '1' : '0';
     }
     document.getElementById('s-2fa').textContent = '—';
   } else {
-    // Студент не видит статистику
+    // Неизвестная роль
     document.getElementById('s-users').textContent = '—';
     document.getElementById('s-active').textContent = '—';
     document.getElementById('s-2fa').textContent = '—';
