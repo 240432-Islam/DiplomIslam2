@@ -849,6 +849,7 @@ async function init(){
   loadProfile();
   await loadPolicy();
   await loadDash();
+  await loadKnowledgeBase(); // Загружаем справочную для всех пользователей
 }
 
 function renderSidebar(){
@@ -2719,10 +2720,18 @@ function renderAnonChatMessages() {
     div.textContent = msg.message_text;
     const escaped = div.innerHTML;
     
+    // Кнопка удаления для админа
+    const deleteBtn = me?.role === 'admin' 
+      ? `<button class="btn btn-r" style="padding:2px 6px;font-size:.7rem;margin-left:8px" onclick="deleteAnonMessage('${msg.id}')">🗑️</button>`
+      : '';
+    
     return `
       <div style="margin-bottom:12px;display:flex;flex-direction:column;align-items:${isMine ? 'flex-end' : 'flex-start'}">
         <div style="font-size:.7rem;color:var(--t3);margin-bottom:2px">${msg.sender_name}</div>
-        <div style="max-width:70%;padding:10px 14px;border-radius:12px;background:${isMine ? 'linear-gradient(135deg,#1d4ed8,#3b82f6)' : 'var(--surf2)'};color:${isMine ? '#fff' : 'var(--t1)'}">${escaped}</div>
+        <div style="max-width:70%;padding:10px 14px;border-radius:12px;background:${isMine ? 'linear-gradient(135deg,#1d4ed8,#3b82f6)' : 'var(--surf2)'};color:${isMine ? '#fff' : 'var(--t1)'};display:flex;align-items:center;gap:8px">
+          <span>${escaped}</span>
+          ${deleteBtn}
+        </div>
         <div style="font-size:.7rem;color:var(--t3);margin-top:2px">${fmtTime(msg.created_at)}</div>
       </div>
     `;
@@ -2850,6 +2859,33 @@ async function deleteAnonChat(sessionId, guestName) {
   
   // Обновляем список чатов
   await loadAnonChats();
+}
+
+async function deleteAnonMessage(messageId) {
+  if (!confirm('Удалить это сообщение?')) {
+    return;
+  }
+  
+  const { data, error } = await sb.rpc('delete_anonymous_message', {
+    p_message_id: messageId
+  });
+  
+  if (error) {
+    console.error('Error deleting message:', error);
+    toast('Ошибка удаления сообщения: ' + error.message, 't-e');
+    return;
+  }
+  
+  if (!data.success) {
+    toast(data.error || 'Ошибка удаления сообщения', 't-e');
+    return;
+  }
+  
+  toast('Сообщение удалено', 't-s');
+  
+  // Удаляем сообщение из локального массива
+  anonChatMessages = anonChatMessages.filter(m => m.id !== messageId);
+  renderAnonChatMessages();
 }
 
 document.addEventListener('DOMContentLoaded', init);
