@@ -408,6 +408,10 @@ async function doRegister(){
       try {
         console.log('[register] 📧 Получаем токен для:', email);
         
+        // ВАЖНО: Ждём 1 секунду чтобы пользователь успел создаться в базе
+        console.log('[register] ⏳ Ждём создания пользователя в базе...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // Используем специальную функцию для новых пользователей
         const { data: tokenData, error: tokenError } = await sb.rpc('create_verification_token_for_new_user', {
           user_email: email
@@ -459,6 +463,12 @@ async function doRegister(){
     if(role !== 'admin'){
       // Получаем токен подтверждения из базы данных
       try {
+        console.log('[register] 📧 Получаем токен для:', email);
+        
+        // ВАЖНО: Ждём 1 секунду чтобы пользователь успел создаться в базе
+        console.log('[register] ⏳ Ждём создания пользователя в базе...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         const { data: tokenData, error: tokenError } = await sb.rpc('create_verification_token_for_new_user', {
           user_email: email
         });
