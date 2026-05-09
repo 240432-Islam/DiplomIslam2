@@ -255,6 +255,71 @@ function setLoading(on){
   btn.innerHTML=on?'<span class="spin"></span>Регистрация...':'Зарегистрироваться';
 }
 
+// Функция отправки email подтверждения
+async function sendVerificationEmail(email, token, name) {
+  const url = `https://240432-islam.github.io/DiplomIslam2/verify-email.html?token=${token}`;
+  const formData = new FormData();
+  formData.append('access_key', 'f85503a5-7a93-4415-90dd-883ce69560cd');
+  formData.append('subject', '📧 Подтверждение email - TURAN');
+  formData.append('from_name', 'TURAN');
+  formData.append('to', email);
+  formData.append('html', `
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; margin: 0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #3b82f6; margin-bottom: 20px; font-size: 24px; }
+        p { color: #333; line-height: 1.6; margin-bottom: 15px; }
+        .button { display: inline-block; background: linear-gradient(135deg, #1d4ed8, #3b82f6); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 30px 0; }
+        .link-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; margin: 20px 0; word-break: break-all; font-size: 12px; color: #666; }
+        .footer { font-size: 12px; color: #999; text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>📧 Подтверждение Email</h1>
+        <p>Здравствуйте, <strong>${name}</strong>!</p>
+        <p>Спасибо за регистрацию в системе <strong>TURAN</strong>. Для завершения регистрации и получения доступа к системе, пожалуйста, подтвердите ваш email адрес.</p>
+        <div style="text-align: center;">
+          <a href="${url}" class="button">✅ Подтвердить Email</a>
+        </div>
+        <p style="font-size: 14px; color: #666;">Или скопируйте эту ссылку в браузер:</p>
+        <div class="link-box">${url}</div>
+        <p style="font-size: 14px; color: #666;">⏰ <strong>Важно:</strong> Ссылка действительна в течение <strong>24 часов</strong>.</p>
+        <p style="font-size: 14px; color: #666;">Если вы не регистрировались в системе TURAN, просто проигнорируйте это письмо.</p>
+        <div class="footer">
+          <p><strong>© 2026 TURAN</strong></p>
+          <p>Все права защищены</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+  
+  try {
+    console.log('[email] Отправка письма на:', email);
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      body: formData
+    });
+    const result = await res.json();
+    
+    if (result.success) {
+      console.log('[email] ✅ Email успешно отправлен');
+      return { success: true };
+    } else {
+      console.error('[email] ❌ Ошибка отправки:', result);
+      return { success: false, error: result.message };
+    }
+  } catch (error) {
+    console.error('[email] ❌ Ошибка сети:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 async function doRegister(){
   const fullname=document.getElementById('fullname').value.trim();
   const email=document.getElementById('email').value.trim();
@@ -325,13 +390,18 @@ async function doRegister(){
 
   // Случай 1: сессия есть → "Confirm email" выключен → пользователь сразу залогинен
   if(data?.session){
-    await sb.from('audit_logs').insert({
-      user_id: data.user.id,
-      username,
-      event_type: 'register',
-      description: 'Регистрация нового пользователя',
-      status: 'success'
-    }).catch(()=>{});
+    // Логируем регистрацию (игнорируем ошибки)
+    try {
+      await sb.from('audit_logs').insert({
+        user_id: data.user.id,
+        username,
+        event_type: 'register',
+        description: 'Регистрация нового пользователя',
+        status: 'success'
+      });
+    } catch(e) {
+      console.log('Audit log failed:', e);
+    }
 
     showMsg('✅ Регистрация успешна! Переходим...', 'success');
     setTimeout(()=>location.href='dashboard.html', 1200);
@@ -351,15 +421,63 @@ async function doRegister(){
     }
 
     // Новый пользователь создан
-    // Для студентов и преподавателей показываем сообщение о подтверждении email
+    console.log('[register] ✅ Пользователь создан:', data.user.id);
+    
+    // Для студентов и преподавателей отправляем email подтверждения
     if(role !== 'admin'){
-      showMsg(
-        '✅ <b>Регистрация успешна!</b><br><br>' +
-        '📧 На ваш email отправлено письмо с подтверждением.<br>' +
-        'Проверьте почту и перейдите по ссылке для активации аккаунта.<br><br>' +
-        '<small style="color:rgba(148,163,184,.7)">Если письмо не пришло, проверьте папку "Спам"</small>',
-        'success'
-      );
+      // Получаем токен подтверждения из базы данных
+      try {
+        const { data: tokenData, error: tokenError } = await sb.rpc('resend_verification_email', {
+          user_email: email
+        });
+        
+        if (tokenError) {
+          console.error('[register] Ошибка получения токена:', tokenError);
+        } else if (tokenData && tokenData.success) {
+          console.log('[register] ✅ Токен получен:', tokenData.token);
+          
+          // Отправляем email
+          const emailResult = await sendVerificationEmail(email, tokenData.token, fullname);
+          
+          if (emailResult.success) {
+            console.log('[register] ✅ Email отправлен');
+            showMsg(
+              '✅ <b>Регистрация успешна!</b><br><br>' +
+              '📧 Письмо с подтверждением отправлено на <b>' + email + '</b><br>' +
+              'Проверьте почту и перейдите по ссылке для активации аккаунта.<br><br>' +
+              '<small style="color:rgba(148,163,184,.7)">Если письмо не пришло, проверьте папку "Спам"</small>',
+              'success'
+            );
+          } else {
+            console.error('[register] ❌ Email не отправлен:', emailResult.error);
+            showMsg(
+              '✅ <b>Регистрация успешна!</b><br><br>' +
+              '⚠️ Не удалось отправить письмо.<br>' +
+              'Токен подтверждения: <code>' + tokenData.token + '</code><br><br>' +
+              '<small>Откройте: verify-email.html?token=' + tokenData.token + '</small>',
+              'warn'
+            );
+          }
+        } else {
+          console.error('[register] Не удалось получить токен');
+          showMsg(
+            '✅ <b>Регистрация успешна!</b><br><br>' +
+            '📧 На ваш email отправлено письмо с подтверждением.<br>' +
+            'Проверьте почту и перейдите по ссылке для активации аккаунта.<br><br>' +
+            '<small style="color:rgba(148,163,184,.7)">Если письмо не пришло, проверьте папку "Спам"</small>',
+            'success'
+          );
+        }
+      } catch (e) {
+        console.error('[register] Exception при отправке email:', e);
+        showMsg(
+          '✅ <b>Регистрация успешна!</b><br><br>' +
+          '📧 На ваш email отправлено письмо с подтверждением.<br>' +
+          'Проверьте почту и перейдите по ссылке для активации аккаунта.<br><br>' +
+          '<small style="color:rgba(148,163,184,.7)">Если письмо не пришло, проверьте папку "Спам"</small>',
+          'success'
+        );
+      }
     } else {
       // Админ может сразу войти
       showMsg('✅ Регистрация успешна! Можете войти в систему.', 'success');
