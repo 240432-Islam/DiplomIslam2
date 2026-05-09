@@ -259,45 +259,31 @@ function setLoading(on){
 async function sendVerificationEmail(email, token, name) {
   const url = `https://240432-islam.github.io/DiplomIslam2/verify-email.html?token=${token}`;
   const formData = new FormData();
+  
   formData.append('access_key', 'f85503a5-7a93-4415-90dd-883ce69560cd');
   formData.append('subject', '📧 Подтверждение email - TURAN');
-  formData.append('from_name', 'TURAN');
+  formData.append('from_name', 'TURAN Education System');
+  formData.append('replyto', 'noreply@turan-edu.kz');
   formData.append('to', email);
-  formData.append('html', `
-    <!DOCTYPE html>
-    <html lang="ru">
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; margin: 0; }
-        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #3b82f6; margin-bottom: 20px; font-size: 24px; }
-        p { color: #333; line-height: 1.6; margin-bottom: 15px; }
-        .button { display: inline-block; background: linear-gradient(135deg, #1d4ed8, #3b82f6); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 30px 0; }
-        .link-box { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; margin: 20px 0; word-break: break-all; font-size: 12px; color: #666; }
-        .footer { font-size: 12px; color: #999; text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h1>📧 Подтверждение Email</h1>
-        <p>Здравствуйте, <strong>${name}</strong>!</p>
-        <p>Спасибо за регистрацию в системе <strong>TURAN</strong>. Для завершения регистрации и получения доступа к системе, пожалуйста, подтвердите ваш email адрес.</p>
-        <div style="text-align: center;">
-          <a href="${url}" class="button">✅ Подтвердить Email</a>
-        </div>
-        <p style="font-size: 14px; color: #666;">Или скопируйте эту ссылку в браузер:</p>
-        <div class="link-box">${url}</div>
-        <p style="font-size: 14px; color: #666;">⏰ <strong>Важно:</strong> Ссылка действительна в течение <strong>24 часов</strong>.</p>
-        <p style="font-size: 14px; color: #666;">Если вы не регистрировались в системе TURAN, просто проигнорируйте это письмо.</p>
-        <div class="footer">
-          <p><strong>© 2026 TURAN</strong></p>
-          <p>Все права защищены</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `);
+  
+  // Используем простой текстовый формат для бесплатной версии Web3Forms
+  formData.append('message', `
+Здравствуйте, ${name}!
+
+Спасибо за регистрацию в системе TURAN. 
+Для завершения регистрации подтвердите ваш email адрес.
+
+Перейдите по ссылке для подтверждения:
+${url}
+
+⏰ Важно: Ссылка действительна в течение 24 часов.
+
+Если вы не регистрировались в системе TURAN, просто проигнорируйте это письмо.
+
+---
+© 2026 TURAN Education System
+Все права защищены
+  `.trim());
   
   try {
     console.log('[email] Отправка письма на:', email);
@@ -408,14 +394,40 @@ async function doRegister(){
       try {
         console.log('[register] 📧 Получаем токен для:', email);
         
-        // ВАЖНО: Ждём 1 секунду чтобы пользователь успел создаться в базе
-        console.log('[register] ⏳ Ждём создания пользователя в базе...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // ВАЖНО: Пытаемся получить токен с повторными попытками
+        // Пользователь может создаваться в базе несколько секунд
+        let tokenData = null;
+        let tokenError = null;
+        let attempts = 0;
+        const maxAttempts = 5;
         
-        // Используем специальную функцию для новых пользователей
-        const { data: tokenData, error: tokenError } = await sb.rpc('create_verification_token_for_new_user', {
-          user_email: email
-        });
+        while (attempts < maxAttempts) {
+          attempts++;
+          console.log(`[register] ⏳ Попытка ${attempts}/${maxAttempts}...`);
+          
+          const result = await sb.rpc('create_verification_token_for_new_user', {
+            user_email: email
+          });
+          
+          tokenData = result.data;
+          tokenError = result.error;
+          
+          // Если успешно — выходим из цикла
+          if (!tokenError && tokenData && tokenData.success) {
+            console.log('[register] ✅ Токен получен на попытке', attempts);
+            break;
+          }
+          
+          // Если пользователь не найден — ждём и пробуем снова
+          if (tokenData && tokenData.error === 'Пользователь не найден') {
+            console.log('[register] ⏳ Пользователь ещё не создался, ждём 1 сек...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+          
+          // Если другая ошибка — прерываем
+          break;
+        }
         
         console.log('[register] Ответ RPC:', tokenData, tokenError);
         
@@ -465,13 +477,39 @@ async function doRegister(){
       try {
         console.log('[register] 📧 Получаем токен для:', email);
         
-        // ВАЖНО: Ждём 1 секунду чтобы пользователь успел создаться в базе
-        console.log('[register] ⏳ Ждём создания пользователя в базе...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // ВАЖНО: Пытаемся получить токен с повторными попытками
+        let tokenData = null;
+        let tokenError = null;
+        let attempts = 0;
+        const maxAttempts = 5;
         
-        const { data: tokenData, error: tokenError } = await sb.rpc('create_verification_token_for_new_user', {
-          user_email: email
-        });
+        while (attempts < maxAttempts) {
+          attempts++;
+          console.log(`[register] ⏳ Попытка ${attempts}/${maxAttempts}...`);
+          
+          const result = await sb.rpc('create_verification_token_for_new_user', {
+            user_email: email
+          });
+          
+          tokenData = result.data;
+          tokenError = result.error;
+          
+          // Если успешно — выходим из цикла
+          if (!tokenError && tokenData && tokenData.success) {
+            console.log('[register] ✅ Токен получен на попытке', attempts);
+            break;
+          }
+          
+          // Если пользователь не найден — ждём и пробуем снова
+          if (tokenData && tokenData.error === 'Пользователь не найден') {
+            console.log('[register] ⏳ Пользователь ещё не создался, ждём 1 сек...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+          
+          // Если другая ошибка — прерываем
+          break;
+        }
         
         if (tokenError) {
           console.error('[register] Ошибка получения токена:', tokenError);
