@@ -463,7 +463,7 @@ input[type="checkbox"] {
         </select>
         <button class="btn btn-r btn-sm adm" onclick="deleteSelectedUsers()" id="delete-selected-btn" style="display:none">🗑️ Удалить выбранных (<span id="selected-count">0</span>)</button>
       </div>
-      <div class="tw"><table><thead><tr><th style="width:40px"><input type="checkbox" id="select-all-users" onchange="toggleSelectAll()" class="adm"></th><th>ФИО</th><th>Логин</th><th>Email</th><th>Отдел</th><th>Роль</th><th>Статус</th><th>Создан</th><th></th></tr></thead><tbody id="u-tbody"></tbody></table></div>
+      <div class="tw"><table><thead><tr><th style="width:40px"><input type="checkbox" id="select-all-users" onchange="toggleSelectAll()" class="adm"></th><th>ФИО</th><th>Логин</th><th>Email</th><th>Отдел</th><th>Роль</th><th>Статус</th><th>Email подтверждён</th><th>Создан</th><th></th></tr></thead><tbody id="u-tbody"></tbody></table></div>
     </div>
   </div>
 
@@ -959,7 +959,7 @@ async function loadDash(){
     document.getElementById('s-users').textContent = allU.length;
     document.getElementById('s-active').textContent = allU.filter(u=>u.is_active).length;
     // Для админа показываем количество подтверждённых email (студенты + преподаватели)
-    const verifiedCount = allU.filter(u => u.email_verified && u.role !== 'admin').length;
+    const verifiedCount = allU.filter(u => u.email_verified === true && u.role !== 'admin').length;
     const totalNonAdmin = allU.filter(u => u.role !== 'admin').length;
     document.getElementById('s-verified').textContent = totalNonAdmin > 0 ? `${verifiedCount}/${totalNonAdmin}` : '—';
   } else if(me?.role === 'teacher'){
@@ -1560,6 +1560,14 @@ function renderUsers(){
     // Админы не могут быть выбраны для удаления
     const canSelect = isAdmin && u.role !== 'admin' && u.id !== me.id;
     
+    // Статус подтверждения email (только для студентов и преподавателей)
+    let emailVerifiedBadge = '—';
+    if (u.role !== 'admin') {
+      emailVerifiedBadge = u.email_verified === true 
+        ? '<span class="badge b-green">✅ Да</span>' 
+        : '<span class="badge b-red">❌ Нет</span>';
+    }
+    
     return `
     <tr>
       <td>${canSelect ? `<input type="checkbox" class="user-checkbox" data-user-id="${u.id}" data-username="${u.username}" onchange="updateSelectedCount()">` : ''}</td>
@@ -1569,6 +1577,7 @@ function renderUsers(){
       <td>${u.department||'—'}</td>
       <td><span class="badge ${u.role==='admin'?'b-gold':u.role==='teacher'?'b-blue':'b-green'}">${u.role==='admin'?'Администратор':u.role==='teacher'?'Преподаватель':'Студент'}</span></td>
       <td><span class="badge ${u.is_active?'b-green':'b-red'}">${u.is_active?'Активен':'Неактивен'}</span></td>
+      <td>${emailVerifiedBadge}</td>
       <td style="font-size:.75rem;color:var(--t3)">${fmtDate(u.created_at)}</td>
       <td>
         <button class="btn btn-sm ${u.is_active?'btn-r':'btn-g'}" onclick="toggleUser('${u.id}',${u.is_active})" title="${u.is_active?'Деактивировать':'Активировать'}">${u.is_active?'🚫':'✅'}</button>
