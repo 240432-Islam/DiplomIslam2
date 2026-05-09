@@ -255,22 +255,12 @@ async function doLogin(){
   });
 
   if(verifyError){
-    setLoading(false);
-    showMsg('msg', 'Ошибка проверки пользователя', 'error');
-    return;
+    console.log('[login] Ошибка проверки email:', verifyError);
+    // Не блокируем вход, просто логируем
   }
 
-  // Если это студент или преподаватель и email не подтверждён
-  if(verifyStatus && !verifyStatus.verified && verifyStatus.role !== 'admin'){
-    setLoading(false);
-    showMsg('msg', 
-      '📧 <b>Email не подтверждён</b><br><br>' +
-      'Проверьте почту и перейдите по ссылке подтверждения.<br>' +
-      'Если письмо не пришло, проверьте папку "Спам" или <a href="verify-email.html" style="color:#60a5fa">запросите новое письмо</a>.', 
-      'info'
-    );
-    return;
-  }
+  // НЕ блокируем вход для неподтверждённых
+  // Пользователь войдёт, но в дашборде увидит предупреждение
 
   const {data, error} = await sb.auth.signInWithPassword({
     email: email, 

@@ -357,6 +357,19 @@ input[type="checkbox"] {
   <div id="v-dash" class="view act">
     <div class="pg-title">Панель управления</div>
     <div class="pg-sub" id="d-date">—</div>
+    
+    <!-- Предупреждение о неподтверждённом email -->
+    <div id="email-warning" style="display:none;background:rgba(234,179,8,.08);border:1.5px solid rgba(234,179,8,.3);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:2rem">⚠️</div>
+      <div style="flex:1">
+        <div style="font-weight:600;color:#fbbf24;margin-bottom:4px">Email не подтверждён</div>
+        <div style="font-size:.85rem;color:rgba(251,191,36,.8);line-height:1.5">
+          Проверьте почту и перейдите по ссылке подтверждения. Некоторые функции могут быть ограничены.
+        </div>
+      </div>
+      <a href="verify-email.html" style="background:rgba(234,179,8,.15);color:#fbbf24;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:.85rem;font-weight:600;white-space:nowrap">Подтвердить</a>
+    </div>
+    
     <div class="stats">
       <div class="stat"><div class="stat-icon">👥</div><div class="stat-val" id="s-users">—</div><div class="stat-lbl">Пользователей</div></div>
       <div class="stat"><div class="stat-icon">✅</div><div class="stat-val" id="s-active">—</div><div class="stat-lbl">Активных</div></div>
@@ -870,6 +883,13 @@ function renderSidebar(){
   // Chat button (for teacher and student)
   const showChat = isTeacher || isStudent;
   document.getElementById('chat-btn').style.display = showChat ? '' : 'none';
+  
+  // Email verification warning (for non-admin with unverified email)
+  const showWarning = !isAdmin && me.email_verified === false;
+  const warningEl = document.getElementById('email-warning');
+  if (warningEl) {
+    warningEl.style.display = showWarning ? 'flex' : 'none';
+  }
 }
 
 // ═══════ NAV ═══════
