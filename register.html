@@ -407,7 +407,9 @@ async function doRegister(){
     if(role !== 'admin'){
       try {
         console.log('[register] 📧 Получаем токен для:', email);
-        const { data: tokenData, error: tokenError } = await sb.rpc('resend_verification_email', {
+        
+        // Используем специальную функцию для новых пользователей
+        const { data: tokenData, error: tokenError } = await sb.rpc('create_verification_token_for_new_user', {
           user_email: email
         });
         
@@ -419,6 +421,12 @@ async function doRegister(){
           console.log('[register] ✅ Токен получен:', tokenData.token);
           const emailResult = await sendVerificationEmail(email, tokenData.token, fullname);
           console.log('[register] Результат отправки:', emailResult);
+          
+          if (emailResult.success) {
+            console.log('[register] ✅ Email успешно отправлен на:', email);
+          } else {
+            console.error('[register] ❌ Email не отправлен:', emailResult.error);
+          }
         } else {
           console.error('[register] ❌ RPC вернул неуспешный результат:', tokenData);
         }
@@ -451,7 +459,7 @@ async function doRegister(){
     if(role !== 'admin'){
       // Получаем токен подтверждения из базы данных
       try {
-        const { data: tokenData, error: tokenError } = await sb.rpc('resend_verification_email', {
+        const { data: tokenData, error: tokenError } = await sb.rpc('create_verification_token_for_new_user', {
           user_email: email
         });
         
