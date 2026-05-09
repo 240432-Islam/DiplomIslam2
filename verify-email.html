@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TURAN — Подтверждение Email</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-shared.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
+.bg{position:fixed;inset:0;background:url('media/Fon.png') center/cover no-repeat;z-index:0;}
+.bg::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(6,8,15,.88) 0%,rgba(6,12,30,.82) 100%);}
+.page{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.card{
+  width:100%;max-width:520px;background:rgba(10,16,35,.88);backdrop-filter:blur(24px);
+  border:1px solid rgba(59,130,246,.18);border-radius:20px;padding:40px;
+  box-shadow:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04);
+  animation:up .4s cubic-bezier(.16,1,.3,1);text-align:center;
+}
+@keyframes up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.card-head{margin-bottom:28px;}
+.card-logo{width:58px;height:58px;object-fit:contain;margin-bottom:16px;filter:drop-shadow(0 0 18px rgba(59,130,246,.5));}
+.card-brand{
+  font-family:'Montserrat',sans-serif;font-size:1.8rem;font-weight:900;letter-spacing:5px;
+  background:linear-gradient(135deg,#fff 0%,#bfdbfe 40%,#60a5fa 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:5px;
+}
+.card-sub{font-size:.72rem;color:rgba(148,163,184,.6);letter-spacing:2px;text-transform:uppercase;}
+
+.icon{font-size:4rem;margin-bottom:20px;}
+.icon.success{animation:bounce .6s ease-out;}
+@keyframes bounce{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.1)}
+}
+
+.title{font-family:'Montserrat',sans-serif;font-size:1.4rem;font-weight:700;color:#e2e8f0;margin-bottom:12px;}
+.desc{font-size:.9rem;color:rgba(148,163,184,.8);line-height:1.6;margin-bottom:24px;}
+
+.msg{padding:11px 14px;border-radius:8px;font-size:.83rem;margin-bottom:16px;border-left:3px solid;line-height:1.6;}
+.msg-error{background:rgba(239,68,68,.08);color:#fca5a5;border-color:#ef4444;}
+.msg-success{background:rgba(34,197,94,.08);color:#86efac;border-color:#22c55e;}
+.msg-info{background:rgba(59,130,246,.08);color:#93c5fd;border-color:#3b82f6;}
+
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .25s;}
+.btn-primary{background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);color:#fff;box-shadow:0 4px 20px rgba(59,130,246,.28);margin-bottom:10px;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(59,130,246,.42);}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+.btn-ghost{background:rgba(59,130,246,.06);color:rgba(148,163,184,.75);border:1.5px solid rgba(59,130,246,.13);}
+.btn-ghost:hover{background:rgba(59,130,246,.12);color:#93c5fd;}
+
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:7px;}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.field{margin-bottom:16px;text-align:left;}
+.field label{display:block;font-size:.71rem;font-weight:600;color:rgba(148,163,184,.70);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;}
+.field input{
+  width:100%;padding:12px 16px;background:rgba(15,23,42,.8);
+  border:1.5px solid rgba(59,130,246,.15);border-radius:10px;color:#e2e8f0;
+  font-size:.9rem;font-family:'Inter',sans-serif;outline:none;transition:all .2s;
+}
+.field input:focus{border-color:rgba(59,130,246,.5);background:rgba(15,23,42,.95);box-shadow:0 0 0 3px rgba(59,130,246,.09);}
+.field input::placeholder{color:rgba(100,116,139,.5);}
+
+.link{color:#60a5fa;text-decoration:none;font-size:.85rem;}
+.link:hover{color:#93c5fd;text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="page">
+  <div class="card">
+    <div class="card-head">
+      <img src="media/logo.png" alt="TURAN" class="card-logo" onerror="this.style.display='none'">
+      <div class="card-brand">TURAN</div>
+      <div class="card-sub">Подтверждение Email</div>
+    </div>
+
+    <!-- Состояние: проверка токена -->
+    <div id="state-checking">
+      <div class="icon">⏳</div>
+      <div class="title">Проверка...</div>
+      <div class="desc">Подождите, мы проверяем ваш токен подтверждения</div>
+    </div>
+
+    <!-- Состояние: успех -->
+    <div id="state-success" style="display:none">
+      <div class="icon success">✅</div>
+      <div class="title">Email подтверждён!</div>
+      <div class="desc">Ваш email успешно подтверждён. Теперь вы можете войти в систему.</div>
+      <button class="btn btn-primary" onclick="location.href='login.html'">Войти в систему</button>
+      <button class="btn btn-ghost" onclick="location.href='index.html'">На главную</button>
+    </div>
+
+    <!-- Состояние: ошибка -->
+    <div id="state-error" style="display:none">
+      <div class="icon">❌</div>
+      <div class="title">Ошибка подтверждения</div>
+      <div class="msg msg-error" id="error-message"></div>
+      <div class="desc">Возможно, токен истёк или уже был использован. Вы можете запросить новое письмо подтверждения.</div>
+      
+      <div id="resend-form">
+        <div class="field">
+          <label>Ваш Email</label>
+          <input id="resend-email" type="email" placeholder="ivanov@example.com">
+        </div>
+        <button class="btn btn-primary" id="resend-btn" onclick="resendVerification()">Отправить повторно</button>
+      </div>
+      
+      <button class="btn btn-ghost" onclick="location.href='index.html'" style="margin-top:10px">На главную</button>
+    </div>
+
+    <!-- Состояние: письмо отправлено -->
+    <div id="state-resent" style="display:none">
+      <div class="icon">📧</div>
+      <div class="title">Письмо отправлено</div>
+      <div class="msg msg-success">Новое письмо с подтверждением отправлено на ваш email</div>
+      <div class="desc">Проверьте почту и перейдите по ссылке в письме. Если письмо не пришло, проверьте папку "Спам".</div>
+      <button class="btn btn-ghost" onclick="location.href='index.html'">На главную</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Получаем токен из URL
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+
+async function verifyEmail() {
+  if (!token) {
+    showError('Токен подтверждения не найден в URL');
+    return;
+  }
+
+  try {
+    const { data, error } = await sb.rpc('verify_email', { token });
+
+    if (error) {
+      console.error('Verification error:', error);
+      showError(error.message || 'Ошибка при подтверждении email');
+      return;
+    }
+
+    if (data.success) {
+      showSuccess();
+    } else {
+      showError(data.error || 'Не удалось подтвердить email');
+    }
+  } catch (e) {
+    console.error('Exception:', e);
+    showError('Ошибка сети: ' + e.message);
+  }
+}
+
+function showSuccess() {
+  document.getElementById('state-checking').style.display = 'none';
+  document.getElementById('state-error').style.display = 'none';
+  document.getElementById('state-success').style.display = 'block';
+}
+
+function showError(message) {
+  document.getElementById('error-message').textContent = message;
+  document.getElementById('state-checking').style.display = 'none';
+  document.getElementById('state-success').style.display = 'none';
+  document.getElementById('state-error').style.display = 'block';
+}
+
+async function resendVerification() {
+  const email = document.getElementById('resend-email').value.trim();
+  
+  if (!email) {
+    alert('Введите email');
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    alert('Введите корректный email');
+    return;
+  }
+
+  const btn = document.getElementById('resend-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Отправка...';
+
+  try {
+    const { data, error } = await sb.rpc('resend_verification_email', { 
+      user_email: email 
+    });
+
+    if (error) {
+      console.error('Resend error:', error);
+      alert('Ошибка: ' + error.message);
+      btn.disabled = false;
+      btn.innerHTML = 'Отправить повторно';
+      return;
+    }
+
+    if (data.success) {
+      // Показываем состояние "письмо отправлено"
+      document.getElementById('state-error').style.display = 'none';
+      document.getElementById('state-resent').style.display = 'block';
+      
+      // В реальном приложении здесь нужно отправить email через внешний сервис
+      // Например, через Supabase Edge Function или webhook
+      console.log('Verification token:', data.token);
+      console.log('Verification URL:', window.location.origin + '/verify-email.html?token=' + data.token);
+    } else {
+      alert(data.error || 'Не удалось отправить письмо');
+      btn.disabled = false;
+      btn.innerHTML = 'Отправить повторно';
+    }
+  } catch (e) {
+    console.error('Exception:', e);
+    alert('Ошибка сети: ' + e.message);
+    btn.disabled = false;
+    btn.innerHTML = 'Отправить повторно';
+  }
+}
+
+// Автоматически проверяем токен при загрузке страницы
+if (token) {
+  verifyEmail();
+} else {
+  showError('Токен подтверждения не найден. Проверьте ссылку из письма.');
+}
+</script>
+</body>
+</html>

@@ -249,6 +249,29 @@ async function doLogin(){
     return;
   }
 
+  // Проверяем статус подтверждения email перед входом
+  const {data: verifyStatus, error: verifyError} = await sb.rpc('check_email_verification', {
+    user_email: email
+  });
+
+  if(verifyError){
+    setLoading(false);
+    showMsg('msg', 'Ошибка проверки пользователя', 'error');
+    return;
+  }
+
+  // Если это студент или преподаватель и email не подтверждён
+  if(verifyStatus && !verifyStatus.verified && verifyStatus.role !== 'admin'){
+    setLoading(false);
+    showMsg('msg', 
+      '📧 <b>Email не подтверждён</b><br><br>' +
+      'Проверьте почту и перейдите по ссылке подтверждения.<br>' +
+      'Если письмо не пришло, проверьте папку "Спам" или <a href="verify-email.html" style="color:#60a5fa">запросите новое письмо</a>.', 
+      'info'
+    );
+    return;
+  }
+
   const {data, error} = await sb.auth.signInWithPassword({
     email: email, 
     password

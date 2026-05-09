@@ -360,7 +360,7 @@ input[type="checkbox"] {
     <div class="stats">
       <div class="stat"><div class="stat-icon">👥</div><div class="stat-val" id="s-users">—</div><div class="stat-lbl">Пользователей</div></div>
       <div class="stat"><div class="stat-icon">✅</div><div class="stat-val" id="s-active">—</div><div class="stat-lbl">Активных</div></div>
-      <div class="stat"><div class="stat-icon">🔒</div><div class="stat-val" id="s-2fa">—</div><div class="stat-lbl">С 2FA</div></div>
+      <div class="stat"><div class="stat-icon">🔒</div><div class="stat-val" id="s-verified">—</div><div class="stat-lbl">Email подтверждён</div></div>
       <div class="stat"><div class="stat-icon">📋</div><div class="stat-val" id="s-events">—</div><div class="stat-lbl">Событий сегодня</div></div>
     </div>
     <div class="card">
@@ -958,7 +958,10 @@ async function loadDash(){
     const allU = all || [];
     document.getElementById('s-users').textContent = allU.length;
     document.getElementById('s-active').textContent = allU.filter(u=>u.is_active).length;
-    document.getElementById('s-2fa').textContent = '—';
+    // Для админа показываем количество подтверждённых email (студенты + преподаватели)
+    const verifiedCount = allU.filter(u => u.email_verified && u.role !== 'admin').length;
+    const totalNonAdmin = allU.filter(u => u.role !== 'admin').length;
+    document.getElementById('s-verified').textContent = totalNonAdmin > 0 ? `${verifiedCount}/${totalNonAdmin}` : '—';
   } else if(me?.role === 'teacher'){
     // Преподаватель видит статистику своих групп (студенты + преподаватели, без админов)
     const {data:myGroups} = await sb
@@ -995,7 +998,8 @@ async function loadDash(){
       document.getElementById('s-users').textContent = '1';
       document.getElementById('s-active').textContent = me.is_active ? '1' : '0';
     }
-    document.getElementById('s-2fa').textContent = '—';
+    // Для преподавателя показываем его статус подтверждения
+    document.getElementById('s-verified').textContent = me.email_verified ? '✅ Да' : '❌ Нет';
   } else if(me?.role === 'student'){
     // Студент видит: однокурсников + преподавателей своей группы (без админов)
     const {data:myEnrollments} = await sb
@@ -1029,12 +1033,13 @@ async function loadDash(){
       document.getElementById('s-users').textContent = '1';
       document.getElementById('s-active').textContent = me.is_active ? '1' : '0';
     }
-    document.getElementById('s-2fa').textContent = '—';
+    // Для студента показываем его статус подтверждения
+    document.getElementById('s-verified').textContent = me.email_verified ? '✅ Да' : '❌ Нет';
   } else {
     // Неизвестная роль
     document.getElementById('s-users').textContent = '—';
     document.getElementById('s-active').textContent = '—';
-    document.getElementById('s-2fa').textContent = '—';
+    document.getElementById('s-verified').textContent = '—';
   }
 
   document.getElementById('d-events').innerHTML = logs.slice(0,8).map(l=>`
@@ -1056,12 +1061,27 @@ function loadProfile(){
   const rows=[
     ['ФИО', me.full_name || me.username || '—'],
     ['Логин', me.username || (me.email ? me.email.split('@')[0] : '—')],
+    ['Email', me.email || '—'],
     ['Отдел', me.department || '—'],
     ['Роль', roleLabels[me.role] || me.role || '—'],
     ['Статус', me.is_active !== false ? '✅ Активен' : '🔴 Неактивен'],
-    ['Последний вход', me.last_login ? fmtDate(me.last_login) : '—'],
-    ['Аккаунт создан', me.created_at ? fmtDate(me.created_at) : '—'],
   ];
+  
+  // Добавляем статус подтверждения email для студентов и преподавателей
+  if (me.role !== 'admin') {
+    rows.push([
+      'Email подтверждён', 
+      me.email_verified 
+        ? '✅ Да' 
+        : '<span style="color:var(--red)">❌ Нет</span> <a href="verify-email.html" style="color:var(--ac2);font-size:.75rem;margin-left:8px">Подтвердить</a>'
+    ]);
+  }
+  
+  rows.push(
+    ['Последний вход', me.last_login ? fmtDate(me.last_login) : '—'],
+    ['Аккаунт создан', me.created_at ? fmtDate(me.created_at) : '—']
+  );
+  
   document.getElementById('pr-rows').innerHTML = rows.map(([k,v])=>`
     <tr style="border-bottom:1px solid var(--b)">
       <td style="padding:10px 0;color:var(--t3);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;width:140px">${k}</td>
