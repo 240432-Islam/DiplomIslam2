@@ -135,21 +135,29 @@ async function verifyEmail() {
   }
 
   try {
-    const { data, error } = await sb.rpc('verify_email', { token });
+    console.log('[verify] Проверяем токен:', token);
+    
+    const { data, error } = await sb.rpc('verify_email_token', { 
+      verification_token: token 
+    });
+
+    console.log('[verify] Ответ RPC:', data, error);
 
     if (error) {
-      console.error('Verification error:', error);
+      console.error('[verify] Verification error:', error);
       showError(error.message || 'Ошибка при подтверждении email');
       return;
     }
 
-    if (data.success) {
+    if (data && data.success) {
+      console.log('[verify] ✅ Email подтверждён!');
       showSuccess();
     } else {
+      console.error('[verify] ❌ Ошибка:', data);
       showError(data.error || 'Не удалось подтвердить email');
     }
   } catch (e) {
-    console.error('Exception:', e);
+    console.error('[verify] Exception:', e);
     showError('Ошибка сети: ' + e.message);
   }
 }
