@@ -345,19 +345,26 @@ function cancel2fa(){
 
 async function afterLogin(user, username){
   // Обновляем last_login (через RLS — пользователь может обновлять свой профиль)
-  await sb.from('profiles')
-    .update({last_login: new Date().toISOString()})
-    .eq('id', user.id)
-    .catch(()=>{});
+  try {
+    await sb.from('profiles')
+      .update({last_login: new Date().toISOString()})
+      .eq('id', user.id);
+  } catch(e) {
+    console.log('Failed to update last_login:', e);
+  }
 
   // Записываем в журнал
-  await sb.from('audit_logs').insert({
-    user_id: user.id,
-    username,
-    event_type: 'login',
-    description: 'Успешный вход',
-    status: 'success'
-  }).catch(()=>{});
+  try {
+    await sb.from('audit_logs').insert({
+      user_id: user.id,
+      username,
+      event_type: 'login',
+      description: 'Успешный вход',
+      status: 'success'
+    });
+  } catch(e) {
+    console.log('Failed to log audit:', e);
+  }
 
   location.href = 'dashboard.html';
 }

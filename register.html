@@ -403,6 +403,30 @@ async function doRegister(){
       console.log('Audit log failed:', e);
     }
 
+    // Отправляем email для студентов и преподавателей (даже если залогинены)
+    if(role !== 'admin'){
+      try {
+        console.log('[register] 📧 Получаем токен для:', email);
+        const { data: tokenData, error: tokenError } = await sb.rpc('resend_verification_email', {
+          user_email: email
+        });
+        
+        console.log('[register] Ответ RPC:', tokenData, tokenError);
+        
+        if (tokenError) {
+          console.error('[register] ❌ Ошибка RPC:', tokenError);
+        } else if (tokenData && tokenData.success) {
+          console.log('[register] ✅ Токен получен:', tokenData.token);
+          const emailResult = await sendVerificationEmail(email, tokenData.token, fullname);
+          console.log('[register] Результат отправки:', emailResult);
+        } else {
+          console.error('[register] ❌ RPC вернул неуспешный результат:', tokenData);
+        }
+      } catch(e) {
+        console.error('[register] ❌ Exception при отправке email:', e);
+      }
+    }
+
     showMsg('✅ Регистрация успешна! Переходим...', 'success');
     setTimeout(()=>location.href='dashboard.html', 1200);
     return;
