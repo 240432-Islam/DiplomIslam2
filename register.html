@@ -255,50 +255,39 @@ function setLoading(on){
   btn.innerHTML=on?'<span class="spin"></span>Регистрация...':'Зарегистрироваться';
 }
 
-// Функция отправки email подтверждения
+// Функция отправки email подтверждения через EmailJS
 async function sendVerificationEmail(email, token, name) {
   const url = `https://240432-islam.github.io/DiplomIslam2/verify-email.html?token=${token}`;
-  const formData = new FormData();
-  
-  formData.append('access_key', 'f85503a5-7a93-4415-90dd-883ce69560cd');
-  formData.append('subject', '📧 Подтверждение email - TURAN');
-  formData.append('from_name', 'TURAN Education System');
-  formData.append('replyto', 'noreply@turan-edu.kz');
-  formData.append('to', email);
-  
-  // Используем простой текстовый формат для бесплатной версии Web3Forms
-  formData.append('message', `
-Здравствуйте, ${name}!
-
-Спасибо за регистрацию в системе TURAN. 
-Для завершения регистрации подтвердите ваш email адрес.
-
-Перейдите по ссылке для подтверждения:
-${url}
-
-⏰ Важно: Ссылка действительна в течение 24 часов.
-
-Если вы не регистрировались в системе TURAN, просто проигнорируйте это письмо.
-
----
-© 2026 TURAN Education System
-Все права защищены
-  `.trim());
   
   try {
     console.log('[email] Отправка письма на:', email);
-    const res = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      body: formData
-    });
-    const result = await res.json();
     
-    if (result.success) {
-      console.log('[email] ✅ Email успешно отправлен');
+    // Загружаем EmailJS библиотеку если ещё не загружена
+    if (!window.emailjs) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+      document.head.appendChild(script);
+      await new Promise(resolve => script.onload = resolve);
+      emailjs.init('ZGIxI1MntgcrUYP5v'); // Public Key
+    }
+    
+    // Отправка письма через EmailJS
+    const result = await emailjs.send(
+      'service_4mal819',      // Service ID
+      'template_2e0kvwe',     // Template ID
+      {
+        to_email: email,           // Email пользователя (ВАЖНО!)
+        to_name: name,             // Имя пользователя
+        verification_url: url      // Ссылка для подтверждения
+      }
+    );
+    
+    if (result.status === 200) {
+      console.log('[email] ✅ Email успешно отправлен на:', email);
       return { success: true };
     } else {
       console.error('[email] ❌ Ошибка отправки:', result);
-      return { success: false, error: result.message };
+      return { success: false, error: result.text };
     }
   } catch (error) {
     console.error('[email] ❌ Ошибка сети:', error);
