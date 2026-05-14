@@ -122,7 +122,11 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
     </div>
     <div class="field">
       <label>Email</label>
-      <input id="email" type="email" placeholder="ivanov@example.com" required>
+      <input id="email" type="email" placeholder="ivanov@gmail.com" required oninput="checkEmailDomain()">
+      <p id="email-warning" style="font-size:.75rem;color:#fbbf24;margin-top:6px;display:flex;align-items:center;gap:6px;">
+        <span>⚠️</span>
+        <span>Используйте только <strong>Gmail</strong> адрес (например: ivanov@gmail.com)</span>
+      </p>
     </div>
     <div class="field">
       <label>Логин (генерируется автоматически)</label>
@@ -208,6 +212,27 @@ function genUsername(fio){
   return (tr(p[0])+(tr(p[1])[0]||'')+(tr(p[2]||'')[0]||'')).replace(/[^a-z0-9_]/g,'');
 }
 function onFio(){document.getElementById('username').value=genUsername(document.getElementById('fullname').value);}
+
+function checkEmailDomain(){
+  const email = document.getElementById('email').value.toLowerCase();
+  const warning = document.getElementById('email-warning');
+  const input = document.getElementById('email');
+  
+  if(email && !email.endsWith('@gmail.com')){
+    warning.style.color = '#ef4444';
+    warning.innerHTML = '<span>❌</span><span><strong>Ошибка!</strong> Используйте только Gmail адрес</span>';
+    input.style.borderColor = 'rgba(239,68,68,.5)';
+  } else if(email && email.endsWith('@gmail.com')){
+    warning.style.color = '#22c55e';
+    warning.innerHTML = '<span>✅</span><span>Gmail адрес подтверждён</span>';
+    input.style.borderColor = 'rgba(34,197,94,.5)';
+  } else {
+    warning.style.color = '#fbbf24';
+    warning.innerHTML = '<span>⚠️</span><span>Используйте только <strong>Gmail</strong> адрес (например: ivanov@gmail.com)</span>';
+    input.style.borderColor = 'rgba(59,130,246,.15)';
+  }
+}
+
 
 function rc(s){const a=new Uint32Array(1);crypto.getRandomValues(a);return s[a[0]%s.length];}
 function shuffle(s){const a=[...s];for(let i=a.length-1;i>0;i--){const r=new Uint32Array(1);crypto.getRandomValues(r);const j=r[0]%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a.join('');}
@@ -307,6 +332,13 @@ async function doRegister(){
   if(!fullname||!username){showMsg('Введите ФИО для генерации логина','error');return;}
   if(!email){showMsg('Введите email','error');return;}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showMsg('Введите корректный email','error');return;}
+  
+  // Проверка что email от Gmail
+  if(!email.toLowerCase().endsWith('@gmail.com')){
+    showMsg('⚠️ Используйте только Gmail адрес (например: ivanov@gmail.com)','error');
+    return;
+  }
+  
   if(!pw){showMsg('Введите пароль','error');return;}
   if(pw!==confirm){showMsg('Пароли не совпадают','error');return;}
   if(pw.length<8){showMsg('Пароль должен быть минимум 8 символов','error');return;}
