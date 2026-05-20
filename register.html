@@ -116,17 +116,40 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
       <div class="card-sub">Регистрация</div>
     </div>
     <div id="msg" class="msg"></div>
+    
+    <!-- Предупреждение о Gmail -->
+    <div style="background:rgba(234,179,8,.08);border:1.5px solid rgba(234,179,8,.3);border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+      <div style="display:flex;align-items:start;gap:10px;">
+        <span style="font-size:1.5rem;flex-shrink:0;">📧</span>
+        <div style="font-size:.82rem;line-height:1.6;">
+          <div style="color:#fbbf24;font-weight:700;margin-bottom:4px;">Используйте Gmail для регистрации</div>
+          <div style="color:rgba(251,191,36,.85);">
+            Письма с подтверждением отправляются только на <strong>Gmail адреса</strong>. 
+            Другие почтовые сервисы не поддерживаются.
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="field">
       <label>ФИО (полностью)</label>
       <input id="fullname" type="text" placeholder="Иванов Иван Иванович" oninput="onFio()">
     </div>
     <div class="field">
       <label>Email</label>
-      <input id="email" type="email" placeholder="ivanov@gmail.com" required oninput="checkEmailDomain()">
-      <p id="email-warning" style="font-size:.75rem;color:#fbbf24;margin-top:6px;display:flex;align-items:center;gap:6px;">
-        <span>⚠️</span>
-        <span>Используйте только <strong>Gmail</strong> адрес (например: ivanov@gmail.com)</span>
-      </p>
+      <input id="email" type="email" placeholder="ivanov@gmail.com" required>
+      <div style="background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:.78rem;line-height:1.5;">
+        <div style="display:flex;align-items:start;gap:8px;">
+          <span style="font-size:1.2rem;flex-shrink:0;">⚠️</span>
+          <div>
+            <div style="color:#fca5a5;font-weight:600;margin-bottom:4px;">Важно!</div>
+            <div style="color:rgba(252,165,165,.85);">
+              Письмо с подтверждением отправляется <strong>только на Gmail адреса</strong>.<br>
+              Если используете другую почту - письмо <strong>не придёт</strong>!
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="field">
       <label>Логин (генерируется автоматически)</label>
@@ -212,26 +235,6 @@ function genUsername(fio){
   return (tr(p[0])+(tr(p[1])[0]||'')+(tr(p[2]||'')[0]||'')).replace(/[^a-z0-9_]/g,'');
 }
 function onFio(){document.getElementById('username').value=genUsername(document.getElementById('fullname').value);}
-
-function checkEmailDomain(){
-  const email = document.getElementById('email').value.toLowerCase();
-  const warning = document.getElementById('email-warning');
-  const input = document.getElementById('email');
-  
-  if(email && !email.endsWith('@gmail.com')){
-    warning.style.color = '#ef4444';
-    warning.innerHTML = '<span>❌</span><span><strong>Ошибка!</strong> Используйте только Gmail адрес</span>';
-    input.style.borderColor = 'rgba(239,68,68,.5)';
-  } else if(email && email.endsWith('@gmail.com')){
-    warning.style.color = '#22c55e';
-    warning.innerHTML = '<span>✅</span><span>Gmail адрес подтверждён</span>';
-    input.style.borderColor = 'rgba(34,197,94,.5)';
-  } else {
-    warning.style.color = '#fbbf24';
-    warning.innerHTML = '<span>⚠️</span><span>Используйте только <strong>Gmail</strong> адрес (например: ivanov@gmail.com)</span>';
-    input.style.borderColor = 'rgba(59,130,246,.15)';
-  }
-}
 
 
 function rc(s){const a=new Uint32Array(1);crypto.getRandomValues(a);return s[a[0]%s.length];}
@@ -332,13 +335,6 @@ async function doRegister(){
   if(!fullname||!username){showMsg('Введите ФИО для генерации логина','error');return;}
   if(!email){showMsg('Введите email','error');return;}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showMsg('Введите корректный email','error');return;}
-  
-  // Проверка что email от Gmail
-  if(!email.toLowerCase().endsWith('@gmail.com')){
-    showMsg('⚠️ Используйте только Gmail адрес (например: ivanov@gmail.com)','error');
-    return;
-  }
-  
   if(!pw){showMsg('Введите пароль','error');return;}
   if(pw!==confirm){showMsg('Пароли не совпадают','error');return;}
   if(pw.length<8){showMsg('Пароль должен быть минимум 8 символов','error');return;}
