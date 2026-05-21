@@ -750,6 +750,7 @@ async function sendAnonymousMessage() {
 function subscribeToAnonymousChat() {
   if (anonChatSubscription) {
     anonChatSubscription.unsubscribe();
+    anonChatSubscription = null;
   }
   
   anonChatSubscription = sb
@@ -760,8 +761,12 @@ function subscribeToAnonymousChat() {
       table: 'anonymous_chat_messages',
       filter: `session_id=eq.${anonChatSession.id}`
     }, payload => {
-      anonChatMessages.push(payload.new);
-      renderAnonymousMessages();
+      // Проверяем что сообщение ещё не добавлено (защита от дубликатов)
+      const messageExists = anonChatMessages.some(msg => msg.id === payload.new.id);
+      if (!messageExists) {
+        anonChatMessages.push(payload.new);
+        renderAnonymousMessages();
+      }
       
       if (!document.getElementById('chat-window').classList.contains('open')) {
         document.getElementById('chat-fab').classList.add('has-unread');

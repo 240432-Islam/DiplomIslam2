@@ -2385,6 +2385,7 @@ function renderChatMessages() {
 function subscribeToChatMessages() {
   if (chatSubscription) {
     chatSubscription.unsubscribe();
+    chatSubscription = null;
   }
   
   chatSubscription = sb
@@ -2395,14 +2396,18 @@ function subscribeToChatMessages() {
       table: 'chat_messages',
       filter: `session_id=eq.${chatSession.id}`
     }, payload => {
-      chatMessages.push(payload.new);
-      renderChatMessages();
-      
-      if (payload.new.sender_id !== me.id) {
-        sb.from('chat_messages')
-          .update({ is_read: true })
-          .eq('id', payload.new.id)
-          .then(() => {});
+      // Проверяем что сообщение ещё не добавлено (защита от дубликатов)
+      const messageExists = chatMessages.some(msg => msg.id === payload.new.id);
+      if (!messageExists) {
+        chatMessages.push(payload.new);
+        renderChatMessages();
+        
+        if (payload.new.sender_id !== me.id) {
+          sb.from('chat_messages')
+            .update({ is_read: true })
+            .eq('id', payload.new.id)
+            .then(() => {});
+        }
       }
     })
     .subscribe();
@@ -2855,6 +2860,7 @@ function renderAnonChatMessages() {
 function subscribeToAnonChat() {
   if (anonChatSubscription) {
     anonChatSubscription.unsubscribe();
+    anonChatSubscription = null;
   }
   
   anonChatSubscription = sb
@@ -2865,15 +2871,19 @@ function subscribeToAnonChat() {
       table: 'anonymous_chat_messages',
       filter: `session_id=eq.${currentAnonChat.id}`
     }, payload => {
-      anonChatMessages.push(payload.new);
-      renderAnonChatMessages();
-      
-      // Если сообщение от гостя, помечаем как прочитанное
-      if (payload.new.sender_type === 'guest') {
-        sb.from('anonymous_chat_messages')
-          .update({ is_read: true })
-          .eq('id', payload.new.id)
-          .then(() => {});
+      // Проверяем что сообщение ещё не добавлено (защита от дубликатов)
+      const messageExists = anonChatMessages.some(msg => msg.id === payload.new.id);
+      if (!messageExists) {
+        anonChatMessages.push(payload.new);
+        renderAnonChatMessages();
+        
+        // Если сообщение от гостя, помечаем как прочитанное
+        if (payload.new.sender_type === 'guest') {
+          sb.from('anonymous_chat_messages')
+            .update({ is_read: true })
+            .eq('id', payload.new.id)
+            .then(() => {});
+        }
       }
     })
     .subscribe();
