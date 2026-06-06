@@ -12,7 +12,7 @@
 body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
 .bg{position:fixed;inset:0;background:url('media/Fon.png') center/cover no-repeat;z-index:0;}
 .bg::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(6,8,15,.88) 0%,rgba(6,12,30,.82) 100%);}
-.page{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.page{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
 .card{
   width:100%;max-width:460px;background:rgba(10,16,35,.88);backdrop-filter:blur(24px);
   border:1px solid rgba(59,130,246,.18);border-radius:20px;padding:40px;
@@ -104,11 +104,28 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
 .chat-name-form input{width:100%;padding:10px 12px;background:rgba(15,23,42,.8);border:1.5px solid rgba(59,130,246,.15);border-radius:8px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none;}
 .chat-name-form input:focus{border-color:rgba(59,130,246,.5);}
 .chat-name-form button{width:100%;padding:10px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;}
+
+/* Password Policy Info Banner */
+.policy-banner{background:linear-gradient(135deg,rgba(59,130,246,.12) 0%,rgba(99,102,241,.12) 100%);border:1.5px solid rgba(59,130,246,.25);border-radius:12px;padding:20px;margin-bottom:24px;}
+.policy-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.policy-icon{font-size:2rem;filter:drop-shadow(0 0 8px rgba(59,130,246,.4));}
+.policy-title{font-family:'Montserrat',sans-serif;font-size:1.1rem;font-weight:700;color:#e2e8f0;}
+.policy-subtitle{font-size:.75rem;color:rgba(148,163,184,.7);margin-top:2px;}
+.policy-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;}
+.policy-item{background:rgba(15,23,42,.6);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:12px;text-align:center;transition:all .3s;}
+.policy-item:hover{background:rgba(15,23,42,.85);border-color:rgba(59,130,246,.4);transform:translateY(-2px);}
+.policy-item-icon{font-size:1.8rem;margin-bottom:8px;}
+.policy-item-label{font-size:.72rem;font-weight:600;color:rgba(148,163,184,.8);line-height:1.4;}
+.policy-item-value{font-size:.78rem;font-weight:700;color:#60a5fa;margin-top:4px;}
+.policy-features{display:flex;flex-wrap:wrap;gap:8px;}
+.policy-feature{display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:20px;font-size:.72rem;font-weight:600;color:#86efac;}
+.policy-feature-icon{font-size:1rem;}
 </style>
 </head>
 <body>
 <div class="bg"></div>
 <div class="page">
+  <!-- ФОРМА РЕГИСТРАЦИИ ВВЕРХУ -->
   <div class="card">
     <div class="card-head">
       <img src="media/logo.png" alt="TURAN" class="card-logo" onerror="this.style.display='none'">
@@ -195,6 +212,151 @@ body{font-family:'Inter',sans-serif;min-height:100vh;background:#06080f;}
     <button class="btn btn-primary" id="reg-btn" onclick="doRegister()">Зарегистрироваться</button>
     <button class="btn btn-ghost" onclick="location.href='index.html'">← На главную</button>
     <div class="link-row">Уже есть аккаунт? <a href="login.html">Войти</a></div>
+  </div>
+  
+  <!-- ИНФОРМАЦИЯ О ПОЛИТИКЕ ПАРОЛЕЙ ВНИЗУ (ГОРИЗОНТАЛЬНО) -->
+  <div style="width:100%;max-width:1200px;margin-top:30px;">
+    <!-- Заголовок -->
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:2.5rem;margin-bottom:12px;">🔐</div>
+      <div style="font-family:'Montserrat',sans-serif;font-size:1.4rem;font-weight:700;color:#e2e8f0;margin-bottom:6px;">
+        Создание политики паролей и аутентификации
+      </div>
+      <div style="font-size:.85rem;color:rgba(148,163,184,.7);">
+        Обеспечение безопасности корпоративных систем
+      </div>
+    </div>
+    
+    <!-- Горизонтальные этапы -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;">
+      
+      <!-- ЭТАП 1 -->
+      <div style="background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(99,102,241,.1));border:1.5px solid rgba(59,130,246,.3);border-radius:16px;padding:20px;backdrop-filter:blur(24px);">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:2.5rem;margin-bottom:10px;">📋</div>
+          <div style="font-size:1rem;font-weight:700;color:#93c5fd;margin-bottom:4px;">ЭТАП 1</div>
+          <div style="font-size:.8rem;color:rgba(148,163,184,.8);">Создание политики</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+          <div style="background:rgba(15,23,42,.7);padding:14px;border-radius:10px;text-align:center;">
+            <div style="font-size:1.8rem;margin-bottom:6px;">📏</div>
+            <div style="font-size:.7rem;color:rgba(148,163,184,.9);margin-bottom:3px;">Длина</div>
+            <div style="font-size:.85rem;color:#60a5fa;font-weight:700;">8+</div>
+          </div>
+          <div style="background:rgba(15,23,42,.7);padding:14px;border-radius:10px;text-align:center;">
+            <div style="font-size:1.8rem;margin-bottom:6px;">🔠</div>
+            <div style="font-size:.7rem;color:rgba(148,163,184,.9);margin-bottom:3px;">Регистр</div>
+            <div style="font-size:.85rem;color:#60a5fa;font-weight:700;">A-Z,a-z</div>
+          </div>
+          <div style="background:rgba(15,23,42,.7);padding:14px;border-radius:10px;text-align:center;">
+            <div style="font-size:1.8rem;margin-bottom:6px;">🔢</div>
+            <div style="font-size:.7rem;color:rgba(148,163,184,.9);margin-bottom:3px;">Цифры</div>
+            <div style="font-size:.85rem;color:#60a5fa;font-weight:700;">0-9</div>
+          </div>
+          <div style="background:rgba(15,23,42,.7);padding:14px;border-radius:10px;text-align:center;">
+            <div style="font-size:1.8rem;margin-bottom:6px;">✨</div>
+            <div style="font-size:.7rem;color:rgba(148,163,184,.9);margin-bottom:3px;">Спецсимв.</div>
+            <div style="font-size:.85rem;color:#60a5fa;font-weight:700;">!@#$</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ЭТАП 2 -->
+      <div style="background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(6,182,212,.08));border:1.5px solid rgba(59,130,246,.25);border-radius:16px;padding:20px;backdrop-filter:blur(24px);">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:2.5rem;margin-bottom:10px;">💻</div>
+          <div style="font-size:1rem;font-weight:700;color:#93c5fd;margin-bottom:4px;">ЭТАП 2</div>
+          <div style="font-size:.8rem;color:rgba(148,163,184,.8);">Проверка пароля</div>
+        </div>
+        <pre style="margin:0;padding:12px;background:rgba(0,0,0,.5);border-radius:10px;font-size:.62rem;line-height:1.5;color:#e2e8f0;overflow-x:auto;"><code>function checkStrength() {
+  const pw = document
+    .getElementById(
+      'password').value;
+  const req = {
+    len: pw.length >= 8,
+    up: /[A-Z]/.test(pw),
+    low: /[a-z]/.test(pw),
+    num: /[0-9]/.test(pw),
+    sym: /[!@#$%^&*]/
+      .test(pw)
+  };
+  const score = Object
+    .values(req)
+    .filter(Boolean)
+    .length;
+}</code></pre>
+      </div>
+      
+      <!-- ЭТАП 3 -->
+      <div style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(16,185,129,.08));border:1.5px solid rgba(34,197,94,.25);border-radius:16px;padding:20px;backdrop-filter:blur(24px);">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:2.5rem;margin-bottom:10px;">⚡</div>
+          <div style="font-size:1rem;font-weight:700;color:#86efac;margin-bottom:4px;">ЭТАП 3</div>
+          <div style="font-size:.8rem;color:rgba(148,163,184,.8);">Генератор</div>
+        </div>
+        <pre style="margin:0;padding:12px;background:rgba(0,0,0,.5);border-radius:10px;font-size:.62rem;line-height:1.5;color:#e2e8f0;overflow-x:auto;"><code>function genPw() {
+  const U='ABC...XYZ';
+  const L='abc...xyz';
+  const N='0123456789';
+  const S='!@#$%^&*';
+  
+  let pw = rc(U) 
+    + rc(L) 
+    + rc(N) 
+    + rc(S);
+  
+  for(let i=4;i<14;i++) 
+    pw += rc(U+L+N+S);
+  
+  return shuffle(pw);
+  // 82 бита
+}</code></pre>
+      </div>
+      
+      <!-- ЭТАП 4 -->
+      <div style="background:linear-gradient(135deg,rgba(168,85,247,.12),rgba(147,51,234,.08));border:1.5px solid rgba(168,85,247,.25);border-radius:16px;padding:20px;backdrop-filter:blur(24px);">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:2.5rem;margin-bottom:10px;">🛡️</div>
+          <div style="font-size:1rem;font-weight:700;color:#c4b5fd;margin-bottom:4px;">ЭТАП 4</div>
+          <div style="font-size:.8rem;color:rgba(148,163,184,.8);">Применение</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(15,23,42,.5);border-radius:8px;">
+            <span style="color:#86efac;font-size:1.1rem;">✓</span>
+            <div style="font-size:.75rem;color:#c4b5fd;font-weight:500;line-height:1.3;">
+              bcrypt хеш<br>
+              <span style="font-size:.65rem;color:rgba(148,163,184,.7);">10 раундов</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(15,23,42,.5);border-radius:8px;">
+            <span style="color:#86efac;font-size:1.1rem;">✓</span>
+            <div style="font-size:.75rem;color:#c4b5fd;font-weight:500;line-height:1.3;">
+              Email верифик.<br>
+              <span style="font-size:.65rem;color:rgba(148,163,184,.7);">UUID, 24ч</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(15,23,42,.5);border-radius:8px;">
+            <span style="color:#86efac;font-size:1.1rem;">✓</span>
+            <div style="font-size:.75rem;color:#c4b5fd;font-weight:500;line-height:1.3;">
+              Защита брутф.<br>
+              <span style="font-size:.65rem;color:rgba(148,163,184,.7);">5 попыток</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(15,23,42,.5);border-radius:8px;">
+            <span style="color:#86efac;font-size:1.1rem;">✓</span>
+            <div style="font-size:.75rem;color:#c4b5fd;font-weight:500;line-height:1.3;">
+              Аудит событ.<br>
+              <span style="font-size:.65rem;color:rgba(148,163,184,.7);">Все попытки</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:10px;background:rgba(34,197,94,.25);border-radius:8px;text-align:center;">
+          <div style="font-size:.7rem;color:rgba(148,163,184,.9);margin-bottom:3px;">📊 Результат</div>
+          <div style="font-size:.8rem;color:#86efac;font-weight:700;">2ч → 10<sup>15</sup> лет</div>
+        </div>
+      </div>
+      
+    </div>
   </div>
 </div>
 
