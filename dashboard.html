@@ -1155,6 +1155,12 @@ async function joinGroup() {
     return;
   }
   
+  // Проверка email
+  if (!me.email_verified) {
+    showMsgEl('jg-msg', '⚠️ Подтвердите email, прежде чем вступать в группу. Проверьте почту и перейдите по ссылке подтверждения.', 'msg-e');
+    return;
+  }
+  
   // Ищем группу по коду
   const { data: group, error: groupError } = await sb
     .from('groups')
@@ -1294,6 +1300,12 @@ async function joinGroup2() {
   
   if (!code || code.length !== 6) {
     showMsgEl('jg-msg2', 'Введите 6-значный код', 'msg-e');
+    return;
+  }
+  
+  // Проверка email
+  if (!me.email_verified) {
+    showMsgEl('jg-msg2', '⚠️ Подтвердите email, прежде чем вступать в группу. Проверьте почту и перейдите по ссылке подтверждения.', 'msg-e');
     return;
   }
   
