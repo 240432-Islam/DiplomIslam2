@@ -466,7 +466,6 @@ input[type="checkbox"] {
     <div class="pg-title">Пользователи</div>
     <div class="card">
       <div class="toolbar">
-        <button class="btn btn-p btn-sm" onclick="openCreateUser()">➕ Добавить</button>
         <input class="search" id="u-search" placeholder="🔍 Поиск..." oninput="renderUsers()" style="flex:1;min-width:160px">
         <select class="fsel" id="u-filter" onchange="renderUsers()">
           <option value="">Все роли</option>
@@ -637,31 +636,6 @@ input[type="checkbox"] {
 
 <!-- Toast -->
 <div id="toast"></div>
-
-<!-- Create User Modal -->
-<div class="modal-overlay" id="m-create">
-  <div class="modal">
-    <div class="modal-title">➕ Создать пользователя</div>
-    <div id="cu-msg" class="msg"></div>
-    <div class="field"><label>ФИО (полностью)</label><input id="cu-fio" type="text" placeholder="Иванов Иван Иванович" oninput="cuFio()"></div>
-    <div class="field"><label>Логин (автогенерация)</label><div class="iw"><input id="cu-uname" type="text" readonly style="padding-right:88px"><button class="cp-btn" onclick="cpText('cu-uname')">Копировать</button></div></div>
-    <div class="field"><label>Отдел</label><input id="cu-dept" type="text" placeholder="Кафедра информатики"></div>
-    <div class="field"><label>Роль</label><select id="cu-role"><option value="student">Студент</option><option value="teacher">Преподаватель</option><option value="admin">Администратор</option></select></div>
-    <div class="field"><label>Пароль (автогенерация)</label><div class="iw"><input id="cu-pw" type="text" readonly style="padding-right:88px"><button class="cp-btn" onclick="regenPw()">⚡ Новый</button></div></div>
-    <div id="cu-result" style="display:none">
-      <div class="creds">
-        <div class="creds-title">🎉 Учётные данные</div>
-        <div class="cred-row"><span class="cred-lbl">Логин:</span><span class="cred-val" id="cu-r-login">—</span><button class="cred-cp" onclick="cpText2('cu-r-login')">📋</button></div>
-        <div class="cred-row"><span class="cred-lbl">Пароль:</span><span class="cred-val" id="cu-r-pw">—</span><button class="cred-cp" onclick="cpText2('cu-r-pw')">📋</button></div>
-        <p style="color:var(--t3);font-size:.72rem;margin-top:8px">⚠️ Сохраните пароль — показывается один раз!</p>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-g" onclick="closeModal('m-create')">Закрыть</button>
-      <button class="btn btn-p" id="cu-btn" onclick="createUser()">Создать</button>
-    </div>
-  </div>
-</div>
 
 <!-- Knowledge Base Modal -->
 <div class="modal-overlay" id="m-kb">
@@ -1690,95 +1664,6 @@ async function toggleUser(uid, active){
   await sb.from('audit_logs').insert({user_id:me.id,username:me.username,event_type:active?'account_locked':'account_unlocked',description:`Аккаунт ${active?'деактивирован':'активирован'}`,status:'success'}).then(()=>{}).catch(()=>{});
   toast(active?'Пользователь деактивирован':'Пользователь активирован',active?'t-e':'t-s');
   await loadUsers();
-}
-
-// Create User
-function openCreateUser(){
-  document.getElementById('cu-fio').value='';
-  document.getElementById('cu-uname').value='';
-  document.getElementById('cu-dept').value='';
-  document.getElementById('cu-role').value='teacher';
-  document.getElementById('cu-msg').classList.remove('show');
-  document.getElementById('cu-result').style.display='none';
-  document.getElementById('cu-btn').style.display='';
-  regenPw();
-  document.getElementById('m-create').classList.add('open');
-}
-function cuFio(){document.getElementById('cu-uname').value=genUser(document.getElementById('cu-fio').value);}
-
-async function createUser(){
-  const fio=document.getElementById('cu-fio').value.trim();
-  const uname=document.getElementById('cu-uname').value.trim();
-  const dept=document.getElementById('cu-dept').value.trim();
-  const role=document.getElementById('cu-role').value;
-  const pw=document.getElementById('cu-pw').value;
-  if(!fio||!uname||!pw){showMsgEl('cu-msg','Заполните все поля','msg-e');return;}
-
-  // Сохраняем текущую сессию админа
-  const adminSession = await sb.auth.getSession();
-  const adminUser = adminSession.data.session?.user;
-  
-  if(!adminUser){
-    showMsgEl('cu-msg','Ошибка: сессия админа не найдена','msg-e');
-    return;
-  }
-
-  try {
-    // Создаём нового пользователя через signUp
-    const {data, error} = await sb.auth.signUp({
-      email: uname + '@turan.kz',
-      password: pw,
-      options: {
-        data: {
-          full_name: fio,
-          username: uname,
-          role: role,
-          department: dept
-        }
-      }
-    });
-
-    if(error){
-      showMsgEl('cu-msg','Ошибка: '+error.message,'msg-e');
-      return;
-    }
-
-    // Выходим из новой сессии и возвращаем админскую
-    await sb.auth.signOut();
-    await sb.auth.setSession({
-      access_token: adminSession.data.session.access_token,
-      refresh_token: adminSession.data.session.refresh_token
-    });
-
-    // Записываем в журнал
-    await sb.from('audit_logs').insert({
-      user_id: adminUser.id,
-      username: me.username,
-      event_type: 'user_created',
-      description: `Создан: ${uname} (${role})`,
-      status: 'success'
-    });
-
-    // Показываем результат
-    document.getElementById('cu-r-login').textContent = uname;
-    document.getElementById('cu-r-pw').textContent = pw;
-    document.getElementById('cu-result').style.display = 'block';
-    document.getElementById('cu-btn').style.display = 'none';
-    showMsgEl('cu-msg','✅ Пользователь создан!','msg-s');
-    toast('Пользователь '+uname+' создан','t-s');
-    
-    // Обновляем список пользователей
-    await loadUsers();
-  } catch(e) {
-    showMsgEl('cu-msg','Ошибка: '+e.message,'msg-e');
-    // Восстанавливаем админскую сессию в случае ошибки
-    if(adminSession.data.session){
-      await sb.auth.setSession({
-        access_token: adminSession.data.session.access_token,
-        refresh_token: adminSession.data.session.refresh_token
-      }).catch(()=>{});
-    }
-  }
 }
 
 // ═══════ AUDIT ═══════
