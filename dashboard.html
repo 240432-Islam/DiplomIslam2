@@ -1978,6 +1978,12 @@ async function createGroup() {
     return;
   }
   
+  // Проверка подтверждения email
+  if (!me.email_verified) {
+    showMsgEl('cg-msg', '⚠️ Подтвердите email, прежде чем создавать группы. Проверьте почту и перейдите по ссылке подтверждения.', 'msg-e');
+    return;
+  }
+  
   document.getElementById('cg-btn').disabled = true;
   document.getElementById('cg-btn').textContent = 'Создание...';
   
