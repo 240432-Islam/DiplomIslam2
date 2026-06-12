@@ -1356,7 +1356,7 @@ async function joinGroup2() {
     event_type: 'group_joined',
     description: `Присоединился к группе "${group.name}"`,
     status: 'success'
-  }).then(() => {}).catch(() => {});
+  }).then(() => {}).then(() => {}).catch(() => {});
   
   // Обновляем отображение
   setTimeout(() => loadMyGroup(), 1000);
